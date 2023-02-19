@@ -2,6 +2,8 @@ import os
 import urllib.request
 from enum import Enum
 import hashlib
+import cv2
+import numpy as np
 
 bad_apple_video = "bad_apple.mp4"
 
@@ -81,3 +83,71 @@ def ensure_bad_apple():
 # Make sure we have the file before we go on
 ensure_bad_apple()
 
+# Make capture object for playback
+video = cv2.VideoCapture(bad_apple_video)
+# Check that the capture object is ready
+if video.isOpened():
+    print('Video successfully opened!')
+else:
+    print('Something went wrong!')
+
+# Make playback window
+windowName = 'Bad Apple'
+cv2.namedWindow(windowName)
+# Read the first frame
+ret, frame1 = video.read()
+prev_frame = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
+prev_final_frame = np.zeros_like(frame1)
+hsv = np.zeros_like(frame1)
+hsv[..., 1] = 255
+# Play the video
+while True:
+    ret, frame2 = video.read() # Read a single frame 
+    if not ret: # This mean it could not read the frame 
+         print("Could not read the frame, video is likely over.")   
+         cv2.destroyWindow(windowName)
+         break
+    
+    #processed_frame = frame2 # Do processing stuff here
+    # https://docs.opencv.org/4.x/d4/dee/tutorial_optical_flow.html
+    # https://learnopencv.com/optical-flow-in-opencv/#dense-optical-flow
+    next_frame = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
+    
+    # Get flow
+    flow = cv2.calcOpticalFlowFarneback(prev_frame, next_frame, None, 0.5, 1, 15, 1, 7, 1.3, 0)
+    mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
+    hsv[..., 0] = ang*180/np.pi/2
+    hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
+    flow_frame = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+    prev_frame = next_frame
+    
+    # Smooth colors with a blur
+    smooth_frame = cv2.bilateralFilter(flow_frame, 11, 75, 75)
+    
+    # Add over last final frame by blending with lighten
+    fade_amt = 0.2
+    img_black = np.zeros_like(prev_final_frame)
+    img_white = np.zeros_like(prev_final_frame) * 255.0
+    motion_frame_bg = cv2.addWeighted(prev_final_frame, 1-fade_amt, img_black, fade_amt, 0.0)
+    motion_frame = np.clip(np.maximum(motion_frame_bg, smooth_frame), 0, 256).astype(np.uint8)
+    
+    
+    # Screen over source
+    next_frame_bgr = cv2.cvtColor(next_frame, cv2.COLOR_GRAY2BGR)
+    final_frame = np.clip(1-np.multiply(1-motion_frame, 1-next_frame_bgr), 0, 256).astype(np.uint8)
+    
+    
+    cv2.imshow(windowName, final_frame)
+    prev_final_frame = final_frame
+    
+    # Exit hotkey
+    stop_playing = False
+    waitKey = (cv2.waitKey(1) & 0xFF)
+    if waitKey == ord('q'): # If Q pressed
+        stop_playing = True
+    
+    if stop_playing:
+        print("Closing video and exiting...")
+        cv2.destroyWindow(windowName)
+        video.release()
+        break
