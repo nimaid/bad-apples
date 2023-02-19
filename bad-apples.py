@@ -91,6 +91,30 @@ if video.isOpened():
 else:
     print('Something went wrong!')
 
+# Get video dimensions and FPS
+frame_width = video.get(cv2.CAP_PROP_FRAME_WIDTH)
+frame_height = video.get(cv2.CAP_PROP_FRAME_HEIGHT)
+size = (int(frame_width), int(frame_height))
+fps = video.get(cv2.CAP_PROP_FPS)
+
+# Make output filename
+ba_name, ba_ext = os.path.splitext(bad_apple_video)
+new_filename = ba_name + "_edit" + ba_ext
+
+# Delete existing one
+try:
+    os.remove(new_filename)
+except:
+    pass
+
+# Start writing new file
+new_video = cv2.VideoWriter(
+    filename=new_filename,
+    fourcc=cv2.VideoWriter_fourcc(*'MP4V'),
+    fps=fps,
+    frameSize=size
+)
+
 # Make playback window
 windowName = 'Bad Apple'
 cv2.namedWindow(windowName)
@@ -106,6 +130,7 @@ while True:
     if not ret: # This mean it could not read the frame 
          print("Could not read the frame, video is likely over.")   
          cv2.destroyWindow(windowName)
+         video.release()
          break
     
     #processed_frame = frame2 # Do processing stuff here
@@ -114,7 +139,7 @@ while True:
     next_frame = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
     
     # Get flow
-    flow = cv2.calcOpticalFlowFarneback(prev_frame, next_frame, None, 0.5, 1, 15, 1, 7, 1.3, 0)
+    flow = cv2.calcOpticalFlowFarneback(prev_frame, next_frame, None, 0.5, 1, 15, 1, 9, 1.7, 0)
     mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
     hsv[..., 0] = ang*180/np.pi/2
     hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
@@ -132,12 +157,14 @@ while True:
     motion_frame = np.clip(np.maximum(motion_frame_bg, smooth_frame), 0, 256).astype(np.uint8)
     
     
-    # Screen over source
+    # Screen over source for a trippy effect
     next_frame_bgr = cv2.cvtColor(next_frame, cv2.COLOR_GRAY2BGR)
     final_frame = np.clip(1-np.multiply(1-motion_frame, 1-next_frame_bgr), 0, 256).astype(np.uint8)
     
     
+    new_video.write(final_frame)
     cv2.imshow(windowName, final_frame)
+    
     prev_final_frame = final_frame
     
     # Exit hotkey
@@ -151,3 +178,6 @@ while True:
         cv2.destroyWindow(windowName)
         video.release()
         break
+
+# Save new video
+new_video.release()
