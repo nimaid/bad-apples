@@ -87,15 +87,20 @@ ensure_bad_apple()
 video = cv2.VideoCapture(bad_apple_video)
 # Check that the capture object is ready
 if video.isOpened():
-    print('Video successfully opened!')
+    print('Video successfully opened!\n')
 else:
-    print('Something went wrong!')
+    print('Something went wrong!\n')
+
+# How much to scale outputs up by
+upscale_factor = 6 # From 360p to 4K
 
 # Get video dimensions and FPS
-frame_width = video.get(cv2.CAP_PROP_FRAME_WIDTH)
-frame_height = video.get(cv2.CAP_PROP_FRAME_HEIGHT)
-size = (int(frame_width), int(frame_height))
+frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+frame_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+size = (frame_width, frame_height)
+video_size = (int(frame_width) * upscale_factor, int(frame_height) * upscale_factor)
 fps = video.get(cv2.CAP_PROP_FPS)
+total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
 
 # Make output filename
 ba_name, ba_ext = os.path.splitext(bad_apple_video)
@@ -110,9 +115,9 @@ except:
 # Start writing new file
 new_video = cv2.VideoWriter(
     filename=new_filename,
-    fourcc=cv2.VideoWriter_fourcc(*'MP4V'),
+    fourcc=cv2.VideoWriter_fourcc(*'mp4v'),
     fps=fps,
-    frameSize=size
+    frameSize=video_size
 )
 
 # Make playback window
@@ -125,6 +130,7 @@ prev_final_frame = np.zeros_like(frame1)
 hsv = np.zeros_like(frame1)
 hsv[..., 1] = 255
 # Play the video
+frame_count = 1
 while True:
     ret, frame2 = video.read() # Read a single frame 
     if not ret: # This mean it could not read the frame 
@@ -133,13 +139,14 @@ while True:
          video.release()
          break
     
-    #processed_frame = frame2 # Do processing stuff here
-    # https://docs.opencv.org/4.x/d4/dee/tutorial_optical_flow.html
-    # https://learnopencv.com/optical-flow-in-opencv/#dense-optical-flow
+    frame_count += 1
+    
+    print("Processing frame {}/{}".format(frame_count, total_frames))
+    
     next_frame = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
     
     # Get flow
-    flow = cv2.calcOpticalFlowFarneback(prev_frame, next_frame, None, 0.5, 1, 15, 1, 9, 1.7, 0)
+    flow = cv2.calcOpticalFlowFarneback(prev_frame, next_frame, None, 0.5, 1, 15, 1, 9, 2.2, 0)
     mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
     hsv[..., 0] = ang*180/np.pi/2
     hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
@@ -165,8 +172,11 @@ while True:
     # Display frame
     cv2.imshow(windowName, final_frame)
     
+    # Scale frame for outputs
+    final_video_frame = cv2.resize(final_frame, video_size, 0, 0, interpolation = cv2.INTER_NEAREST)
+    
     # Save frame
-    new_video.write(final_frame)
+    new_video.write(final_video_frame)
     
     # Update last frame
     prev_final_frame = final_frame
