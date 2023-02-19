@@ -162,9 +162,13 @@ while True:
     final_frame = np.clip(1-np.multiply(1-motion_frame, 1-next_frame_bgr), 0, 256).astype(np.uint8)
     
     
-    new_video.write(final_frame)
+    # Display frame
     cv2.imshow(windowName, final_frame)
     
+    # Save frame
+    new_video.write(final_frame)
+    
+    # Update last frame
     prev_final_frame = final_frame
     
     # Exit hotkey
