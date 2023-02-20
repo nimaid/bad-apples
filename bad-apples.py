@@ -92,7 +92,7 @@ else:
     print('Something went wrong!\n')
 
 # How much to scale outputs up by
-upscale_factor = 6 # From 360p to 4K
+upscale_factor = 6 # 6 to go from 360p to 4K
 
 # Get video dimensions and FPS
 frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
