@@ -111,11 +111,11 @@ Watashi kara hanareru kokoro mo
 Mienaiwa sou shiranai?
 
 29
-00:02:20,411 --> 00:02:22,848
+00:02:20,411 --> 00:02:23,832
 Jibun kara ugoku koto mo naku
 
 30
-00:02:22,848 --> 00:02:27,300
+00:02:23,832 --> 00:02:27,300
 Toki no sukima ni nagasare tsuzukete
 
 31

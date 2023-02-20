@@ -139,12 +139,12 @@ Watashi kara hanareru kokoro mo
 Mienaiwa sou shiranai?
 
 29
-00:02:20,411 --> 00:02:22,848
+00:02:20,411 --> 00:02:23,832
 自分から　動くこともなく
 Jibun kara ugoku koto mo naku
 
 30
-00:02:22,848 --> 00:02:27,300
+00:02:23,832 --> 00:02:27,300
 時の隙間に　流され続けて
 Toki no sukima ni nagasare tsuzukete
 
