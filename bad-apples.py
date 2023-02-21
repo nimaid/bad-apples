@@ -165,9 +165,10 @@ while True:
     
     
     # Screen over source for a trippy effect
-    next_frame_bgr = cv2.cvtColor(next_frame, cv2.COLOR_GRAY2BGR)
-    final_frame = np.clip(1-np.multiply(1-motion_frame, 1-next_frame_bgr), 0, 256).astype(np.uint8)
-    
+    # This is the "broken" code
+    next_frame_bgr = cv2.cvtColor(next_frame, cv2.COLOR_GRAY2BGR) # Comment out if using the "working" code
+    final_frame = np.clip(1-np.multiply(1-motion_frame, 1-next_frame_bgr), 0, 256).astype(np.uint8) # Use this line only for "broken" code
+    #final_frame = motion_frame # Use this line for "working" code
     
     # Display frame
     cv2.imshow(windowName, final_frame)
