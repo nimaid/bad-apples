@@ -4,6 +4,8 @@ from enum import Enum
 import hashlib
 import cv2
 import numpy as np
+import blend_modes as bm
+import ffmpeg
 
 bad_apple_video = "bad_apple.mp4"
 
@@ -92,7 +94,7 @@ else:
     print('Something went wrong!\n')
 
 # How much to scale outputs up by
-upscale_factor = 6 # 6 to go from 360p to 4K
+upscale_factor = 1 # 6 to go from 360p to 4K
 
 # Get video dimensions and FPS
 frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -102,19 +104,21 @@ video_size = (int(frame_width) * upscale_factor, int(frame_height) * upscale_fac
 fps = video.get(cv2.CAP_PROP_FPS)
 total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
 
-# Make output filename
+# Make output filenames
 ba_name, ba_ext = os.path.splitext(bad_apple_video)
+temp_filename = ba_name + "_temp" + ba_ext
 new_filename = ba_name + "_edit" + ba_ext
 
 # Delete existing one
 try:
+    os.remove(temp_filename)
     os.remove(new_filename)
 except:
     pass
 
 # Start writing new file
 new_video = cv2.VideoWriter(
-    filename=new_filename,
+    filename=temp_filename,
     fourcc=cv2.VideoWriter_fourcc(*'mp4v'),
     fps=fps,
     frameSize=video_size
@@ -126,7 +130,7 @@ cv2.namedWindow(windowName)
 # Read the first frame
 ret, frame1 = video.read()
 prev_frame = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
-prev_final_frame = np.zeros_like(frame1)
+prev_motion_frame = np.zeros_like(frame1)
 hsv = np.zeros_like(frame1)
 hsv[..., 1] = 255
 # Play the video
@@ -155,33 +159,49 @@ while True:
     prev_frame = next_frame
     
     # Smooth colors with a blur
-    smooth_frame = cv2.bilateralFilter(flow_frame, 11, 75, 75)
+    blur_px = 11
+    blur_sigma = 200
+    smooth_frame = cv2.bilateralFilter(flow_frame, blur_px, blur_sigma, blur_sigma)
     
-    # Add over last final frame by blending with lighten
-    fade_amt = 0.2
-    img_black = np.zeros_like(prev_final_frame)
-    img_white = np.zeros_like(prev_final_frame) * 255.0
-    motion_frame_bg = cv2.addWeighted(prev_final_frame, 1-fade_amt, img_black, fade_amt, 0.0)
+    # Add over last motion frame by blending with lighten
+    fade_amt = 0.1
+    img_black = np.zeros_like(prev_motion_frame)
+    img_white = np.zeros_like(prev_motion_frame) * 255.0
+    motion_frame_bg = cv2.addWeighted(prev_motion_frame, 1-fade_amt, img_black, fade_amt, 0.0)
     motion_frame = np.clip(np.maximum(motion_frame_bg, smooth_frame), 0, 256).astype(np.uint8)
     
     
-    # Screen over source for a trippy effect
-    # This is the "broken" code
-    next_frame_bgr = cv2.cvtColor(next_frame, cv2.COLOR_GRAY2BGR) # Comment out if using the "working" code
-    final_frame = np.clip(1-np.multiply(1-motion_frame, 1-next_frame_bgr), 0, 256).astype(np.uint8) # Use this line only for "broken" code
-    #final_frame = motion_frame # Use this line for "working" code
+    # Blend motion colors over original video
+    next_frame_bgr = cv2.cvtColor(next_frame, cv2.COLOR_GRAY2BGR)
+    # Add alpha channel for blend_modes module
+    next_frame_bgr_alpha = cv2.cvtColor(next_frame_bgr, cv2.COLOR_RGB2RGBA)
+    motion_frame_alpha = cv2.cvtColor(motion_frame, cv2.COLOR_RGB2RGBA)
+    # Convert to float for blend_modes module
+    next_frame_bgr_float = next_frame_bgr_alpha / 255.0 
+    motion_frame_float = motion_frame_alpha / 255.0 
+    # Do the blending
+    blend_frame = bm.difference(next_frame_bgr_float, motion_frame_float, 1.0)
+    #blend_frame = motion_frame_float
+    # Convert back to int
+    final_frame_alpha = (blend_frame * 255).astype(np.uint8)
+    # Strip alpha channel
+    final_frame = cv2.cvtColor(final_frame_alpha, cv2.COLOR_RGBA2RGB)
+    
     
     # Display frame
     cv2.imshow(windowName, final_frame)
     
     # Scale frame for outputs
-    final_video_frame = cv2.resize(final_frame, video_size, 0, 0, interpolation = cv2.INTER_NEAREST)
+    if upscale_factor != 1:
+        final_video_frame = cv2.resize(final_frame, video_size, 0, 0, interpolation = cv2.INTER_NEAREST)
+    else:
+        final_video_frame = final_frame
     
     # Save frame
     new_video.write(final_video_frame)
     
-    # Update last frame
-    prev_final_frame = final_frame
+    # Update last motion frame
+    prev_motion_frame = motion_frame
     
     # Exit hotkey
     stop_playing = False
