@@ -130,6 +130,7 @@ prev_final_frame = np.zeros_like(frame1)
 hsv = np.zeros_like(frame1)
 hsv[..., 1] = 255
 # Play the video
+user_stopped = False
 frame_count = 1
 while True:
     ret, frame2 = video.read() # Read a single frame 
@@ -190,9 +191,26 @@ while True:
     
     if stop_playing:
         print("Closing video and exiting...")
+        user_stopped = True
         cv2.destroyWindow(windowName)
         video.release()
         break
 
 # Save new video
 new_video.release()
+
+
+# If user quit, stop here
+if user_stopped:
+    exit()
+
+
+# Mux original audio and new video together (lossless)
+print("\nAdding audio...\n")
+video_original = ffmpeg.input(bad_apple_video)
+video_new = ffmpeg.input(temp_filename)
+video_muxed = ffmpeg.output(video_original.audio, video_new.video, new_filename)
+ffmpeg_result = video_muxed.run()
+os.remove(temp_filename) # Delete the temp file
+print("\nAdded audio!")
+
