@@ -30,7 +30,7 @@ class BadApple:
         if self.quality == self.Quality.HD720P_60FPS:
             self.name = "bad_apple@720p60fps"
             self.url = "https://archive.org/download/bad-apple-resources/bad_apple%40720p60fps.mp4"
-            self.sha1 = "48088cb4c442ba2d73c8ec154dd499b946038fe4"
+            self.sha1 = "af382d0bb69e467ab6a3e57635c2448e5242742f"
         else: # default is also BadApple.Quality.STANDARD
             self.name = "bad_apple"
             self.url = "https://archive.org/download/bad-apple-resources/bad_apple.mp4"
