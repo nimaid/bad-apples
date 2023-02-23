@@ -164,10 +164,11 @@ while True:
     smooth_frame = cv2.bilateralFilter(flow_frame, blur_px, blur_sigma, blur_sigma)
     
     # Add over last motion frame by blending with lighten
-    fade_amt = 0.1
-    img_black = np.zeros_like(prev_motion_frame)
-    img_white = np.zeros_like(prev_motion_frame) * 255.0
-    motion_frame_bg = cv2.addWeighted(prev_motion_frame, 1-fade_amt, img_black, fade_amt, 0.0)
+    fade_amt = 2
+    img_sub = np.ones_like(prev_motion_frame) * fade_amt
+    # Darken last motion frame
+    motion_frame_bg = np.subtract(prev_motion_frame, img_sub.astype(np.int16)).clip(0, 255).astype(np.uint8)
+    # Do the lighten
     motion_frame = np.clip(np.maximum(motion_frame_bg, smooth_frame), 0, 256).astype(np.uint8)
     
     
