@@ -31,10 +31,14 @@ class BadApple:
             self.name = "bad_apple@720p60fps"
             self.url = "https://archive.org/download/bad-apple-resources/bad_apple%40720p60fps.mp4"
             self.sha1 = "af382d0bb69e467ab6a3e57635c2448e5242742f"
+            self.img_scale = 2 # 720p
+            self.fps_scale = 2 # 60 FPS
         else: # default is also BadApple.Quality.STANDARD
             self.name = "bad_apple"
             self.url = "https://archive.org/download/bad-apple-resources/bad_apple.mp4"
             self.sha1 = "d248203e4f8a88433bee75cf9d0e746386ba4b1b"
+            self.img_scale = 1 # 360p
+            self.fps_scale = 1 # 30 FPS
         self.filename = self.name + self.ext
         
         # Get the file
@@ -116,7 +120,7 @@ class BadApple:
 
 
 # Create the BadApple object
-ba = BadApple(BadApple.Quality.STANDARD)
+ba = BadApple(BadApple.Quality.HD720P_60FPS)
 
 # Make capture object for playback
 video = cv2.VideoCapture(ba.filename)
@@ -127,7 +131,7 @@ else:
     print('Something went wrong!\n')
 
 # How much to scale outputs up by
-upscale_factor = 1 # 6 to go from 360p to 4K
+upscale_factor = 2 # 6 to go from 360p to 4K
 upscale_method = cv2.INTER_CUBIC
 
 # Get video dimensions and FPS
@@ -184,7 +188,8 @@ while True:
     next_frame = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
     
     # Get flow
-    flow = cv2.calcOpticalFlowFarneback(prev_frame, next_frame, None, 0.5, 1, 15, 1, 9, 3, 0)
+    window_size = 15 * ba.img_scale
+    flow = cv2.calcOpticalFlowFarneback(prev_frame, next_frame, None, 0.5, 1, window_size, 1, 9, 3, 0)
     mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
     hsv[..., 0] = ang*180/np.pi/2
     hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
@@ -192,12 +197,12 @@ while True:
     prev_frame = next_frame
     
     # Smooth colors with a blur
-    blur_px = 11
+    blur_px = 11 * ba.img_scale
     blur_sigma = 200
     smooth_frame = cv2.bilateralFilter(flow_frame, blur_px, blur_sigma, blur_sigma)
     
     # Add over last motion frame by blending with lighten
-    fade_amt = 2
+    fade_amt = 4 / ba.fps_scale
     img_sub = np.ones_like(prev_motion_frame) * fade_amt
     # Darken last motion frame
     motion_frame_bg = np.subtract(prev_motion_frame, img_sub.astype(np.int16)).clip(0, 255).astype(np.uint8)
