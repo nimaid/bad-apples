@@ -9,6 +9,9 @@ import ffmpeg
 
 
 
+# A class to represent the Bad Apple video
+# Capable of multiple video qualities
+# Will download and verify missing files
 class BadApple:
     class Quality(Enum):
         STANDARD = 0
@@ -112,7 +115,7 @@ class BadApple:
         print("Bad Apple is ready!\n")
 
 
-# Make sure we have the file before we go on
+# Create the BadApple object
 ba = BadApple(BadApple.Quality.STANDARD)
 
 # Make capture object for playback
