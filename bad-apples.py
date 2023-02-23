@@ -7,92 +7,116 @@ import numpy as np
 import blend_modes as bm
 import ffmpeg
 
-bad_apple_video = "bad_apple.mp4"
 
-# The current best source for the original video from NicoNico
-bad_apple_url = "https://archive.org/download/nicovideo-sm8628149/nicovideo-sm8628149_4c8a655c13612a596d6b97c58797d3c622adebddc6436264e47e615fdccb9d21.mp4"
-bad_apple_sha1 = "d248203e4f8a88433bee75cf9d0e746386ba4b1b"
 
-# Some useful return codes
-class ErrorCode(Enum):
-    ERR_NONE = 0
-    ERR_CONNECTION_FAILED = 1
-    ERR_CONNECTION_OTHER = 2
-    ERR_FILE_MISSING = 3
-    ERR_FILE_CORRUPT = 4
-    ERR_USER_STOP = 5
-
-# Function to validate if the video is missing or corrupt
-def validate_bad_apple():
-    filename = bad_apple_video
-    # Check to make sure the file is there
-    if not os.path.isfile(filename):
-        return ErrorCode.ERR_FILE_MISSING
+class BadApple:
+    class Quality(Enum):
+        STANDARD = 0
+        HD720P_60FPS = 1
     
-    # Check if file is corrupted
-    BUF_SIZE = 65536  # lets read stuff in 64kb chunks
-    download_sha1 = hashlib.sha1()
-    with open(filename, 'rb') as f:
-        while True:
-            data = f.read(BUF_SIZE)
-            if not data:
-                break
-            download_sha1.update(data)
-    download_sha1 = download_sha1.hexdigest()
-    if bad_apple_sha1 != download_sha1:
-        return ErrorCode.ERR_FILE_CORRUPT
-    
-    # All good
-    return ErrorCode.ERR_NONE
+    def __init__(
+        self,
+        quality=None
+    ):
+        if quality == None: # default to BadApple.Quality.STANDARD
+            self.quality = self.Quality.STANDARD
+        else:
+            self.quality = quality
+        
+        self.ext = ".mp4"
+        if self.quality == self.Quality.HD720P_60FPS:
+            self.name = "bad_apple@720p60fps"
+            self.url = "https://archive.org/download/bad-apple-resources/bad_apple%40720p60fps.mp4"
+            self.sha1 = "48088cb4c442ba2d73c8ec154dd499b946038fe4"
+        else: # default is also BadApple.Quality.STANDARD
+            self.name = "bad_apple"
+            self.url = "https://archive.org/download/bad-apple-resources/bad_apple.mp4"
+            self.sha1 = "d248203e4f8a88433bee75cf9d0e746386ba4b1b"
+        self.filename = self.name + self.ext
+        
+        # Get the file
+        self.ensure_bad_apple()
+        
+        self.filename_full = os.path.realpath(self.filename)
+        
+    # Some useful return codes
+    class ErrorCode(Enum):
+        ERR_NONE = 0
+        ERR_CONNECTION_FAILED = 1
+        ERR_CONNECTION_OTHER = 2
+        ERR_FILE_MISSING = 3
+        ERR_FILE_CORRUPT = 4
+        ERR_USER_STOP = 5
 
-# Function to download a local copy of bad apple
-def download_bad_apple():
-    # Download the video locally
-    print("Downloading the video...")
-    filename = bad_apple_video
-    try:
-        file_location, result = urllib.request.urlretrieve(bad_apple_url, filename)
-    except urllib.error.URLError:
-        # Download failed due to connection issues
-        # May be temporary, or a sign the upload was removed.
-        return ErrorCode.ERR_CONNECTION_FAILED
-    except KeyboardInterrupt:
-        return ErrorCode.ERR_USER_STOP
-    except:
-        # Some other connection related issues
-        return ErrorCode.ERR_CONNECTION_OTHER
-    print("Video downloaded!\n")
-    
-    print("Starting checksum verification...")
-    result = validate_bad_apple()
-    if result in [ErrorCode.ERR_FILE_MISSING, ErrorCode.ERR_FILE_CORRUPT]:
-        print("Checksum did not match! Download may have gotten corrupted.")
-        return result
-    print("Checksum verified!\n")
-    
-    # All good
-    return ErrorCode.ERR_NONE
+    # Function to validate if the video is missing or corrupt
+    def validate_bad_apple(self):
+        # Check to make sure the file is there
+        if not os.path.isfile(self.filename):
+            return self.ErrorCode.ERR_FILE_MISSING
+        
+        # Check if file is corrupted
+        BUF_SIZE = 65536  # lets read stuff in 64kb chunks
+        download_sha1 = hashlib.sha1()
+        with open(self.filename, 'rb') as f:
+            while True:
+                data = f.read(BUF_SIZE)
+                if not data:
+                    break
+                download_sha1.update(data)
+        download_sha1 = download_sha1.hexdigest()
+        if self.sha1 != download_sha1:
+            return self.ErrorCode.ERR_FILE_CORRUPT
+        
+        # All good
+        return self.ErrorCode.ERR_NONE
 
-# Function to make sure a non-corrupt copy of bad apple is available locally
-# It will download one if needed
-def ensure_bad_apple():
-    result = validate_bad_apple()
-    while result != ErrorCode.ERR_NONE:
-        # Retry
-        print("Bad Apple not found. Trying to get Bad Apple...\n")
-        retry_result = download_bad_apple()
-        if retry_result == ErrorCode.ERR_USER_STOP:
-            os.remove(bad_apple_video)
-            raise KeyboardInterrupt("User interrupted the download process.")
-        result = validate_bad_apple()
-    print("Bad Apple is ready!\n")
+    # Function to download a local copy of bad apple
+    def download_bad_apple(self):
+        # Download the video locally
+        print("Downloading the video...")
+        try:
+            file_location, result = urllib.request.urlretrieve(self.url, self.filename)
+        except urllib.error.URLError:
+            # Download failed due to connection issues
+            # May be temporary, or a sign the upload was removed.
+            return self.ErrorCode.ERR_CONNECTION_FAILED
+        except KeyboardInterrupt:
+            return self.ErrorCode.ERR_USER_STOP
+        except:
+            # Some other connection related issues
+            return self.ErrorCode.ERR_CONNECTION_OTHER
+        print("Video downloaded!\n")
+        
+        print("Starting checksum verification...")
+        result = self.validate_bad_apple()
+        if result in [self.ErrorCode.ERR_FILE_MISSING, self.ErrorCode.ERR_FILE_CORRUPT]:
+            print("Checksum did not match! Download may have gotten corrupted.")
+            return result
+        print("Checksum verified!\n")
+        
+        # All good
+        return self.ErrorCode.ERR_NONE
+
+    # Function to make sure a non-corrupt copy of bad apple is available locally
+    # It will download one if needed
+    def ensure_bad_apple(self):
+        result = self.validate_bad_apple()
+        while result != self.ErrorCode.ERR_NONE:
+            # Retry
+            print("Bad Apple not found. Trying to get Bad Apple...\n")
+            retry_result = self.download_bad_apple()
+            if retry_result == self.ErrorCode.ERR_USER_STOP:
+                os.remove(self.filename)
+                raise KeyboardInterrupt("User interrupted the download process.")
+            result = self.validate_bad_apple()
+        print("Bad Apple is ready!\n")
 
 
 # Make sure we have the file before we go on
-ensure_bad_apple()
+ba = BadApple(BadApple.Quality.STANDARD)
 
 # Make capture object for playback
-video = cv2.VideoCapture(bad_apple_video)
+video = cv2.VideoCapture(ba.filename)
 # Check that the capture object is ready
 if video.isOpened():
     print('Video successfully opened!\n')
@@ -112,9 +136,8 @@ fps = video.get(cv2.CAP_PROP_FPS)
 total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
 
 # Make output filenames
-ba_name, ba_ext = os.path.splitext(bad_apple_video)
-temp_filename = ba_name + "_temp" + ba_ext
-new_filename = ba_name + "_edit" + ba_ext
+temp_filename = ba.name + "_temp" + ba.ext
+new_filename = ba.name + "_edit" + ba.ext
 
 # Delete existing one
 try:
@@ -235,7 +258,7 @@ if user_stopped:
 
 # Mux original audio and new video together (lossless)
 print("\nAdding audio...\n")
-video_original = ffmpeg.input(bad_apple_video)
+video_original = ffmpeg.input(ba.filename)
 video_new = ffmpeg.input(temp_filename)
 video_muxed = ffmpeg.output(video_original.audio, video_new.video, new_filename)
 ffmpeg_result = video_muxed.run()
