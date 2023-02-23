@@ -20,6 +20,7 @@ class ErrorCode(Enum):
     ERR_CONNECTION_OTHER = 2
     ERR_FILE_MISSING = 3
     ERR_FILE_CORRUPT = 4
+    ERR_USER_STOP = 5
 
 # Function to validate if the video is missing or corrupt
 def validate_bad_apple():
@@ -55,6 +56,8 @@ def download_bad_apple():
         # Download failed due to connection issues
         # May be temporary, or a sign the upload was removed.
         return ErrorCode.ERR_CONNECTION_FAILED
+    except KeyboardInterrupt:
+        return ErrorCode.ERR_USER_STOP
     except:
         # Some other connection related issues
         return ErrorCode.ERR_CONNECTION_OTHER
@@ -78,6 +81,9 @@ def ensure_bad_apple():
         # Retry
         print("Bad Apple not found. Trying to get Bad Apple...\n")
         retry_result = download_bad_apple()
+        if retry_result == ErrorCode.ERR_USER_STOP:
+            os.remove(bad_apple_video)
+            raise KeyboardInterrupt("User interrupted the download process.")
         result = validate_bad_apple()
     print("Bad Apple is ready!\n")
 
