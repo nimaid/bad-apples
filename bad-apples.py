@@ -95,7 +95,7 @@ else:
 
 # How much to scale outputs up by
 upscale_factor = 1 # 6 to go from 360p to 4K
-upscale_method = cv2.INTER_NEAREST
+upscale_method = cv2.INTER_CUBIC
 
 # Get video dimensions and FPS
 frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
