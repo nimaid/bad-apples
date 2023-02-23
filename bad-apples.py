@@ -16,6 +16,7 @@ class BadApple:
     class Quality(Enum):
         STANDARD = 0
         HD720P_60FPS = 1
+        SD60FPS = 2
     
     def __init__(
         self,
@@ -32,6 +33,12 @@ class BadApple:
             self.url = "https://archive.org/download/bad-apple-resources/bad_apple%40720p60fps.mp4"
             self.sha1 = "af382d0bb69e467ab6a3e57635c2448e5242742f"
             self.img_scale = 2 # 720p
+            self.fps_scale = 2 # 60 FPS
+        elif self.quality == self.Quality.SD60FPS:
+            self.name = "bad_apple@60fps"
+            self.url = "https://archive.org/download/bad-apple-resources/bad_apple%4060fps.mp4"
+            self.sha1 = "f6cb4b4b7c8d94dfc5edadf399e8636cd5d39082"
+            self.img_scale = 1 # 360p
             self.fps_scale = 2 # 60 FPS
         else: # default is also BadApple.Quality.STANDARD
             self.name = "bad_apple"
@@ -120,7 +127,7 @@ class BadApple:
 
 
 # Create the BadApple object
-ba = BadApple(BadApple.Quality.HD720P_60FPS)
+ba = BadApple(BadApple.Quality.STANDARD)
 
 # Make capture object for playback
 video = cv2.VideoCapture(ba.filename)
