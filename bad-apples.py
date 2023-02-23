@@ -195,7 +195,7 @@ while True:
     
     # Scale frame for outputs
     if upscale_factor != 1:
-        final_video_frame = cv2.resize(final_frame, video_size, 0, 0, upscale_method)
+        final_video_frame = cv2.resize(final_frame, video_size, 0, 0, interpolation = upscale_method)
     else:
         final_video_frame = final_frame
     
