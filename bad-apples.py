@@ -14,9 +14,16 @@ import ffmpeg
 # Will download and verify missing files
 class BadApple:
     class Quality(Enum):
-        STANDARD = 0
-        HD720P_60FPS = 1
-        SD60FPS = 2
+        STANDARD = 0 # 360p @ 30 FPS
+        SD60FPS = 1 # 360p @ 60 FPS
+        HD = 2 # 720p @ 30FPS
+        HD60FPS = 3 # 720p @ 60 FPS
+        FHD = 4 # 1080p @ 30 FPS
+        FHD60FPS = 5 # 1080p @ 60 FPS
+        QHD = 6 # 1440p @ 30 FPS
+        QHD60FPS = 7 # 1440p @ 60 FPS
+        UHD = 6 # 2160p @ 30 FPS
+        UHD60FPS = 7 # 2160p @ 60 FPS
     
     def __init__(
         self,
@@ -28,7 +35,7 @@ class BadApple:
             self.quality = quality
         
         self.ext = ".mp4"
-        if self.quality == self.Quality.HD720P_60FPS:
+        if self.quality == self.Quality.HD60FPS:
             self.name = "bad_apple@720p60fps"
             self.url = "https://archive.org/download/bad-apple-resources/bad_apple%40720p60fps.mp4"
             self.sha1 = "af382d0bb69e467ab6a3e57635c2448e5242742f"
