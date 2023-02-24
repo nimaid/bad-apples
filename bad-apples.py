@@ -16,7 +16,7 @@ class BadApple:
     class Quality(Enum):
         STANDARD = 0 # 360p @ 30 FPS
         SD60FPS = 1 # 360p @ 60 FPS
-        HD = 2 # 720p @ 30FPS --TODO--
+        HD = 2 # 720p @ 30FPS
         HD60FPS = 3 # 720p @ 60 FPS
         FHD = 4 # 1080p @ 30 FPS --TODO--
         FHD60FPS = 5 # 1080p @ 60 FPS --TODO--
@@ -38,13 +38,19 @@ class BadApple:
         if self.quality == self.Quality.SD60FPS:
             self.name = "bad_apple@60fps"
             self.url = "https://archive.org/download/bad-apple-resources/bad_apple%4060fps.mp4"
-            self.sha1 = "f6cb4b4b7c8d94dfc5edadf399e8636cd5d39082"
+            self.sha1 = "f154318c4049b665aa4fa4dc819b10c2c34ff97e"
             self.img_scale = 1 # 360p
             self.fps_scale = 2 # 60 FPS
+        elif self.quality == self.Quality.HD:
+            self.name = "bad_apple@720p"
+            self.url = "https://archive.org/download/bad-apple-resources/bad_apple%40720p.mp4"
+            self.sha1 = "333bae3a21b4e514e06f5a6b1104dfb0c698411e"
+            self.img_scale = 2 # 720p
+            self.fps_scale = 1 # 30 FPS
         elif self.quality == self.Quality.HD60FPS:
             self.name = "bad_apple@720p60fps"
             self.url = "https://archive.org/download/bad-apple-resources/bad_apple%40720p60fps.mp4"
-            self.sha1 = "af382d0bb69e467ab6a3e57635c2448e5242742f"
+            self.sha1 = "15c22498e6abf3fb0f7ca73d39d281a3e5c0c706"
             self.img_scale = 2 # 720p
             self.fps_scale = 2 # 60 FPS
         else: # default is also BadApple.Quality.STANDARD
@@ -138,7 +144,7 @@ class BadApple:
 
 
 # Create the BadApple object
-ba = BadApple(BadApple.Quality.STANDARD)
+ba = BadApple(BadApple.Quality.HD60FPS)
 
 # Make capture object for playback
 video = cv2.VideoCapture(ba.filename)
