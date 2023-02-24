@@ -35,17 +35,17 @@ class BadApple:
             self.quality = quality
         
         self.ext = ".mp4"
-        if self.quality == self.Quality.HD60FPS:
-            self.name = "bad_apple@720p60fps"
-            self.url = "https://archive.org/download/bad-apple-resources/bad_apple%40720p60fps.mp4"
-            self.sha1 = "af382d0bb69e467ab6a3e57635c2448e5242742f"
-            self.img_scale = 2 # 720p
-            self.fps_scale = 2 # 60 FPS
-        elif self.quality == self.Quality.SD60FPS:
+        if self.quality == self.Quality.SD60FPS:
             self.name = "bad_apple@60fps"
             self.url = "https://archive.org/download/bad-apple-resources/bad_apple%4060fps.mp4"
             self.sha1 = "f6cb4b4b7c8d94dfc5edadf399e8636cd5d39082"
             self.img_scale = 1 # 360p
+            self.fps_scale = 2 # 60 FPS
+        elif self.quality == self.Quality.HD60FPS:
+            self.name = "bad_apple@720p60fps"
+            self.url = "https://archive.org/download/bad-apple-resources/bad_apple%40720p60fps.mp4"
+            self.sha1 = "af382d0bb69e467ab6a3e57635c2448e5242742f"
+            self.img_scale = 2 # 720p
             self.fps_scale = 2 # 60 FPS
         else: # default is also BadApple.Quality.STANDARD
             self.name = "bad_apple"
