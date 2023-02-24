@@ -19,7 +19,7 @@ class BadApple:
         HD = 2 # 720p @ 30FPS
         HD60FPS = 3 # 720p @ 60 FPS
         FHD = 4 # 1080p @ 30 FPS --TODO--
-        FHD60FPS = 5 # 1080p @ 60 FPS --TODO--
+        FHD60FPS = 5 # 1080p @ 60 FPS
         QHD = 6 # 1440p @ 30 FPS --TODO--
         QHD60FPS = 7 # 1440p @ 60 FPS --TODO--
         UHD = 6 # 2160p @ 30 FPS --TODO--
@@ -152,7 +152,7 @@ class BadApple:
 
 
 # Create the BadApple object
-ba = BadApple(BadApple.Quality.HD60FPS)
+ba = BadApple(BadApple.Quality.FHD60FPS)
 
 # Make capture object for playback
 video = cv2.VideoCapture(ba.filename)
