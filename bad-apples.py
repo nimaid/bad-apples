@@ -227,7 +227,7 @@ while True:
     
     # Get flow
     window_size = 15 * ba.img_scale
-    flow = cv2.calcOpticalFlowFarneback(prev_frame, next_frame, None, 0.5, 1, window_size, 1, 9, 3, 0)
+    flow = cv2.calcOpticalFlowFarneback(prev_frame, next_frame, None, 0.5, 3, window_size, 3, 7, 1.5, 0)
     mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
     hsv[..., 0] = ang*180/np.pi/2
     hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
