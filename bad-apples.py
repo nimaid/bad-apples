@@ -54,6 +54,10 @@ class BadApple:
             self.img_scale = 1 # 360p
             self.fps_scale = 1 # 30 FPS
         self.filename = self.name + self.ext
+        self.width = 360 * self.img_scale
+        self.height = 480 * self.img_scale
+        self.size = (self.width, self.height)
+        self.fps = 30.0 * self.fps_scale
         
         # Get the file
         self.ensure_bad_apple()
