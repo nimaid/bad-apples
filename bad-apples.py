@@ -35,7 +35,13 @@ class BadApple:
             self.quality = quality
         
         self.ext = ".mp4"
-        if self.quality == self.Quality.SD60FPS:
+        if self.quality == self.Quality.STANDARD:
+            self.name = "bad_apple"
+            self.url = "https://archive.org/download/bad-apple-resources/bad_apple.mp4"
+            self.sha1 = "d248203e4f8a88433bee75cf9d0e746386ba4b1b"
+            self.img_scale = 1 # 360p
+            self.fps_scale = 1 # 30 FPS
+        elif self.quality == self.Quality.SD60FPS:
             self.name = "bad_apple@60fps"
             self.url = "https://archive.org/download/bad-apple-resources/bad_apple%4060fps.mp4"
             self.sha1 = "f154318c4049b665aa4fa4dc819b10c2c34ff97e"
@@ -53,12 +59,14 @@ class BadApple:
             self.sha1 = "15c22498e6abf3fb0f7ca73d39d281a3e5c0c706"
             self.img_scale = 2 # 720p
             self.fps_scale = 2 # 60 FPS
-        else: # default is also BadApple.Quality.STANDARD
-            self.name = "bad_apple"
-            self.url = "https://archive.org/download/bad-apple-resources/bad_apple.mp4"
-            self.sha1 = "d248203e4f8a88433bee75cf9d0e746386ba4b1b"
-            self.img_scale = 1 # 360p
-            self.fps_scale = 1 # 30 FPS
+        elif self.quality == self.Quality.FHD60FPS:
+            self.name = "bad_apple@1080p60fps"
+            self.url = ""
+            self.sha1 = ""
+            self.img_scale = 3 # 1080p
+            self.fps_scale = 2 # 60 FPS
+        else:
+            raise ValueError("An invalid quality setting was provided to the BadApple class!")
         self.filename = self.name + self.ext
         self.width = 360 * self.img_scale
         self.height = 480 * self.img_scale
