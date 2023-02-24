@@ -235,9 +235,11 @@ while True:
     prev_frame = next_frame
     
     # Smooth colors with a blur
-    blur_px = 11 * ba.img_scale
-    blur_sigma = 200
-    smooth_frame = cv2.bilateralFilter(flow_frame, blur_px, blur_sigma, blur_sigma)
+    blur_px = 20 * ba.img_scale
+    blur_sigma = 300
+    #smooth_frame = cv2.bilateralFilter(flow_frame, blur_px, blur_sigma, blur_sigma)
+    blur_ksize = blur_px + (1-(blur_px&2))
+    smooth_frame = cv2.GaussianBlur(flow_frame, (blur_ksize, blur_ksize), blur_sigma)
     
     # Add over last motion frame by blending with lighten
     fade_amt = 4 / ba.fps_scale
