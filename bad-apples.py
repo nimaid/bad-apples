@@ -71,6 +71,18 @@ class BadApple:
             self.sha1 = "549491981229b937dc5f3987851d343a456828f2"
             self.img_scale = 3 # 1080p
             self.fps_scale = 2 # 60 FPS
+        elif self.quality == self.Quality.QHD:
+            self.name = "bad_apple@1440p"
+            self.url = "https://archive.org/download/bad-apple-resources/bad_apple%401440p.mp4"
+            self.sha1 = "012425b863987ef84e4aafabbb66998dd6e15d51"
+            self.img_scale = 4 # 1440p
+            self.fps_scale = 1 # 30 FPS
+            elif self.quality == self.Quality.QHD60FPS:
+            self.name = "bad_apple@1440p60fps"
+            self.url = "https://archive.org/download/bad-apple-resources/bad_apple%401440p60fps.mp4"
+            self.sha1 = "6204b3173ec745f4c583b6dde11f858a7886b8d0"
+            self.img_scale = 4 # 1440p
+            self.fps_scale = 2 # 60 FPS
         else:
             raise ValueError("An invalid quality setting was provided to the BadApple class!")
         self.filename = self.name + self.ext
