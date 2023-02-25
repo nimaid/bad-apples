@@ -18,10 +18,10 @@ class BadApple:
         SD60FPS = 1 # 360p @ 60 FPS
         HD = 2 # 720p @ 30FPS
         HD60FPS = 3 # 720p @ 60 FPS
-        FHD = 4 # 1080p @ 30 FPS --TODO--
+        FHD = 4 # 1080p @ 30 FPS
         FHD60FPS = 5 # 1080p @ 60 FPS
-        QHD = 6 # 1440p @ 30 FPS --TODO--
-        QHD60FPS = 7 # 1440p @ 60 FPS --TODO--
+        QHD = 6 # 1440p @ 30 FPS
+        QHD60FPS = 7 # 1440p @ 60 FPS
         UHD = 6 # 2160p @ 30 FPS --TODO--
         UHD60FPS = 7 # 2160p @ 60 FPS --TODO--
     
