@@ -186,6 +186,7 @@ upscale_method = cv2.INTER_NEAREST
 # How much to scale down the display by
 downscale_factor = 3 # 4 to go from 2160p to 720p
 downscale_method = cv2.INTER_LINEAR
+
 # Flow settings
 flow_window_size = 15 * ba.img_scale
 flow_layers = 4
@@ -193,6 +194,10 @@ flow_iterations = 4
 # Blur settings
 blur_px = 20 * ba.img_scale
 blur_sigma = 300
+
+# Make output filenames
+temp_filename = ba.name + "_temp" + ba.ext
+new_filename = ba.name + "_edit" + ba.ext
 
 # Get video dimensions and FPS
 frame_width = ba.width
@@ -202,13 +207,12 @@ display_size = (round(frame_width/downscale_factor), round(frame_height/downscal
 fps = ba.fps
 total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
 
-# Make output filenames
-temp_filename = ba.name + "_temp" + ba.ext
-new_filename = ba.name + "_edit" + ba.ext
-
-# Delete existing one
+# Delete existing outputs
 try:
     os.remove(temp_filename)
+except:
+    pass
+try:
     os.remove(new_filename)
 except:
     pass
