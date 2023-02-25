@@ -171,11 +171,15 @@ else:
 # How much to scale outputs up by
 upscale_factor = 1 # 6 to go from 360p to 2160p
 upscale_method = cv2.INTER_NEAREST
+# How much to scale down the display by
+downscale_factor = 2 # 4 to go from 2160p to 720p
+downscale_method = cv2.INTER_LINEAR
 
 # Get video dimensions and FPS
 frame_width = ba.width
 frame_height = ba.height
 video_size = (round(frame_width*upscale_factor), round(frame_height*upscale_factor))
+display_size = (round(frame_width/downscale_factor), round(frame_height/downscale_factor))
 fps = ba.fps
 total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
 
@@ -269,7 +273,11 @@ while True:
     
     
     # Display frame
-    cv2.imshow(windowName, final_frame)
+    if downscale_factor != 1:
+        display_frame = cv2.resize(final_frame, display_size, 0, 0, interpolation = downscale_method)
+    else:
+        display_frame = final_frame
+    cv2.imshow(windowName, display_frame)
     
     # Scale frame for outputs
     if upscale_factor != 1:
