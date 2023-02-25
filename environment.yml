@@ -6,7 +6,6 @@ dependencies:
   - pip
   - pip:
     - numpy
-    - hashlib
     - opencv-python
     - blend_modes
     - ffmpeg-python
