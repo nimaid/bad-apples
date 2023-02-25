@@ -74,8 +74,8 @@ class BadApple:
         else:
             raise ValueError("An invalid quality setting was provided to the BadApple class!")
         self.filename = self.name + self.ext
-        self.width = 360 * self.img_scale
-        self.height = 480 * self.img_scale
+        self.width = 480 * self.img_scale
+        self.height = 360 * self.img_scale
         self.size = (self.width, self.height)
         self.fps = 30.0 * self.fps_scale
         
