@@ -225,8 +225,8 @@ hsv = np.zeros_like(frame1)
 hsv[..., 1] = 255
 # Setup variables
 flow_window_size = 15 * ba.img_scale
-flow_layers = 3
-flow_iterations = 3
+flow_layers = 4
+flow_iterations = 4
 
 blur_px = 20 * ba.img_scale
 blur_sigma = 300
