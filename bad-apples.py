@@ -61,8 +61,8 @@ class BadApple:
             self.fps_scale = 2 # 60 FPS
         elif self.quality == self.Quality.FHD:
             self.name = "bad_apple@1080p"
-            self.url = ""
-            self.sha1 = ""
+            self.url = "https://archive.org/download/bad-apple-resources/bad_apple%401080p.mp4"
+            self.sha1 = "b8fef140406312d4bc2a51936d7de9c47fe02e8b"
             self.img_scale = 3 # 1080p
             self.fps_scale = 1 # 30 FPS
         elif self.quality == self.Quality.FHD60FPS:
