@@ -173,11 +173,10 @@ upscale_factor = 1 # 6 to go from 360p to 4K
 upscale_method = cv2.INTER_NEAREST
 
 # Get video dimensions and FPS
-frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
-frame_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-size = (frame_width, frame_height)
-video_size = (int(frame_width) * upscale_factor, int(frame_height) * upscale_factor)
-fps = video.get(cv2.CAP_PROP_FPS)
+frame_width = ba.width
+frame_height = ba.height
+video_size = (round(frame_width*upscale_factor), round(frame_height*upscale_factor))
+fps = ba.fps
 total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
 
 # Make output filenames
