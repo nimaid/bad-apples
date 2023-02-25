@@ -142,7 +142,7 @@ class BadApple:
     # Function to download a local copy of bad apple
     def download_bad_apple(self):
         # Download the video locally
-        print("Downloading the video...")
+        print("Downloading video... ({})".format(self.filename))
         try:
             file_location, result = urllib.request.urlretrieve(self.url, self.filename)
         except urllib.error.URLError:
@@ -172,13 +172,13 @@ class BadApple:
         result = self.validate_bad_apple()
         while result != self.ErrorCode.ERR_NONE:
             # Retry
-            print("Bad Apple not found. Trying to get Bad Apple...\n")
+            print("Bad Apple video not found in the desired quality. Trying to download it...\n")
             retry_result = self.download_bad_apple()
             if retry_result == self.ErrorCode.ERR_USER_STOP:
                 os.remove(self.filename)
                 raise KeyboardInterrupt("User interrupted the download process.")
             result = self.validate_bad_apple()
-        print("Bad Apple is ready!\n")
+        print("Bad Apple is ready! ({})\n".format(self.filename))
 
 
 # Create the BadApple object
