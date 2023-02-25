@@ -194,6 +194,8 @@ flow_iterations = 4
 # Blur settings
 blur_px = 20 * ba.img_scale
 blur_sigma = 300
+# Fade settings
+fade_amt = min(round(4 / ba.fps_scale), 1)
 
 # Make output filenames
 temp_filename = ba.name + "_temp" + ba.ext
@@ -234,6 +236,8 @@ prev_frame = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
 prev_motion_frame = np.zeros_like(frame1)
 hsv = np.zeros_like(frame1)
 hsv[..., 1] = 255
+# Make utility variables
+img_sub = np.ones_like(frame1) * fade_amt
 # Play the video
 user_stopped = False
 frame_count = 1
@@ -262,12 +266,9 @@ while True:
     # Smooth colors with a blur
     smooth_frame = cv2.bilateralFilter(flow_frame, blur_px, blur_sigma, blur_sigma)
     
-    # Add over last motion frame by blending with lighten
-    fade_amt = 4 / ba.fps_scale
-    img_sub = np.ones_like(prev_motion_frame) * fade_amt
     # Darken last motion frame
     motion_frame_bg = np.subtract(prev_motion_frame, img_sub.astype(np.int16)).clip(0, 255).astype(np.uint8)
-    # Do the lighten
+    # Add over last motion frame by blending with lighten
     motion_frame = np.clip(np.maximum(motion_frame_bg, smooth_frame), 0, 256).astype(np.uint8)
     
     
