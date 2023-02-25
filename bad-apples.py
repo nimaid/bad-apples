@@ -170,7 +170,7 @@ class BadApple:
 
 
 # Create the BadApple object
-ba = BadApple(BadApple.Quality.FHD60FPS)
+ba = BadApple(BadApple.Quality.QHD60FPS)
 
 # Make capture object for playback
 video = cv2.VideoCapture(ba.filename)
@@ -184,7 +184,7 @@ else:
 upscale_factor = 1 # 6 to go from 360p to 2160p
 upscale_method = cv2.INTER_NEAREST
 # How much to scale down the display by
-downscale_factor = 2 # 4 to go from 2160p to 720p
+downscale_factor = 3 # 4 to go from 2160p to 720p
 downscale_method = cv2.INTER_LINEAR
 
 # Get video dimensions and FPS
