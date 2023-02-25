@@ -1,0 +1,12 @@
+name: bad-apple
+channels:
+  - defaults
+dependencies:
+  - python=3.10*
+  - pip
+  - pip:
+    - numpy
+    - hashlib
+    - opencv-python
+    - blend_modes
+    - ffmpeg-python
