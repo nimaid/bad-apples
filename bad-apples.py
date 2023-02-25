@@ -22,8 +22,8 @@ class BadApple:
         FHD60 = 5 # 1080p @ 60 FPS
         QHD = 6 # 1440p @ 30 FPS
         QHD60 = 7 # 1440p @ 60 FPS
-        UHD = 6 # 2160p @ 30 FPS --TODO--
-        UHD60 = 7 # 2160p @ 60 FPS --TODO--
+        UHD = 6 # 2160p @ 30 FPS
+        UHD60 = 7 # 2160p @ 60 FPS
     
     def __init__(
         self,
@@ -82,6 +82,18 @@ class BadApple:
             self.url = "https://archive.org/download/bad-apple-resources/bad_apple%401440p60fps.mp4"
             self.sha1 = "6204b3173ec745f4c583b6dde11f858a7886b8d0"
             self.img_scale = 4 # 1440p
+            self.fps_scale = 2 # 60 FPS
+        elif self.quality == self.Quality.UHD:
+            self.name = "bad_apple@2160p"
+            self.url = "https://archive.org/download/bad-apple-resources/bad_apple%402160p.mp4"
+            self.sha1 = "028ec64b3c909a92b6532b32a2473f735667feb0"
+            self.img_scale = 6 # 2160p
+            self.fps_scale = 1 # 30 FPS
+        elif self.quality == self.Quality.UHD60:
+            self.name = "bad_apple@2160p60fps"
+            self.url = "https://archive.org/download/bad-apple-resources/bad_apple%402160p60fps.mp4"
+            self.sha1 = "d5dcaef680abbff71c0e9fb9de130d45a4ba2cb7"
+            self.img_scale = 6 # 2160p
             self.fps_scale = 2 # 60 FPS
         else:
             raise ValueError("An invalid quality setting was provided to the BadApple class!")
