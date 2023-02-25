@@ -207,6 +207,13 @@ prev_frame = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
 prev_motion_frame = np.zeros_like(frame1)
 hsv = np.zeros_like(frame1)
 hsv[..., 1] = 255
+# Setup variables
+flow_window_size = 15 * ba.img_scale
+flow_layers = 1
+flow_iterations = 1
+
+blur_px = 20 * ba.img_scale
+blur_sigma = 300
 # Play the video
 user_stopped = False
 frame_count = 1
@@ -225,9 +232,6 @@ while True:
     next_frame = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
     
     # Get flow
-    flow_window_size = 15 * ba.img_scale
-    flow_layers = 3
-    flow_iterations = 3
     flow = cv2.calcOpticalFlowFarneback(prev_frame, next_frame, None, 0.5, flow_layers, flow_window_size, flow_iterations, 7, 1.5, 0)
     mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
     hsv[..., 0] = ang*180/np.pi/2
@@ -236,8 +240,6 @@ while True:
     prev_frame = next_frame
     
     # Smooth colors with a blur
-    blur_px = 20 * ba.img_scale
-    blur_sigma = 300
     smooth_frame = cv2.bilateralFilter(flow_frame, blur_px, blur_sigma, blur_sigma)
     
     # Add over last motion frame by blending with lighten
