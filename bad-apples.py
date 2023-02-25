@@ -14,34 +14,34 @@ import ffmpeg
 # Will download and verify missing files
 class BadApple:
     class Quality(Enum):
-        STANDARD = 0 # 360p @ 30 FPS
-        SD60FPS = 1 # 360p @ 60 FPS
+        SD = 0 # 360p @ 30 FPS
+        SD60 = 1 # 360p @ 60 FPS
         HD = 2 # 720p @ 30FPS
-        HD60FPS = 3 # 720p @ 60 FPS
+        HD60 = 3 # 720p @ 60 FPS
         FHD = 4 # 1080p @ 30 FPS
-        FHD60FPS = 5 # 1080p @ 60 FPS
+        FHD60 = 5 # 1080p @ 60 FPS
         QHD = 6 # 1440p @ 30 FPS
-        QHD60FPS = 7 # 1440p @ 60 FPS
+        QHD60 = 7 # 1440p @ 60 FPS
         UHD = 6 # 2160p @ 30 FPS --TODO--
-        UHD60FPS = 7 # 2160p @ 60 FPS --TODO--
+        UHD60 = 7 # 2160p @ 60 FPS --TODO--
     
     def __init__(
         self,
         quality=None
     ):
-        if quality == None: # default to BadApple.Quality.STANDARD
-            self.quality = self.Quality.STANDARD
+        if quality == None: # default to BadApple.Quality.SD
+            self.quality = self.Quality.SD
         else:
             self.quality = quality
         
         self.ext = ".mp4"
-        if self.quality == self.Quality.STANDARD:
+        if self.quality == self.Quality.SD:
             self.name = "bad_apple"
             self.url = "https://archive.org/download/bad-apple-resources/bad_apple.mp4"
             self.sha1 = "d248203e4f8a88433bee75cf9d0e746386ba4b1b"
             self.img_scale = 1 # 360p
             self.fps_scale = 1 # 30 FPS
-        elif self.quality == self.Quality.SD60FPS:
+        elif self.quality == self.Quality.SD60:
             self.name = "bad_apple@60fps"
             self.url = "https://archive.org/download/bad-apple-resources/bad_apple%4060fps.mp4"
             self.sha1 = "f154318c4049b665aa4fa4dc819b10c2c34ff97e"
@@ -53,7 +53,7 @@ class BadApple:
             self.sha1 = "333bae3a21b4e514e06f5a6b1104dfb0c698411e"
             self.img_scale = 2 # 720p
             self.fps_scale = 1 # 30 FPS
-        elif self.quality == self.Quality.HD60FPS:
+        elif self.quality == self.Quality.HD60:
             self.name = "bad_apple@720p60fps"
             self.url = "https://archive.org/download/bad-apple-resources/bad_apple%40720p60fps.mp4"
             self.sha1 = "15c22498e6abf3fb0f7ca73d39d281a3e5c0c706"
@@ -65,7 +65,7 @@ class BadApple:
             self.sha1 = "b8fef140406312d4bc2a51936d7de9c47fe02e8b"
             self.img_scale = 3 # 1080p
             self.fps_scale = 1 # 30 FPS
-        elif self.quality == self.Quality.FHD60FPS:
+        elif self.quality == self.Quality.FHD60:
             self.name = "bad_apple@1080p60fps"
             self.url = "https://archive.org/download/bad-apple-resources/bad_apple%401080p60fps.mp4"
             self.sha1 = "549491981229b937dc5f3987851d343a456828f2"
@@ -77,7 +77,7 @@ class BadApple:
             self.sha1 = "012425b863987ef84e4aafabbb66998dd6e15d51"
             self.img_scale = 4 # 1440p
             self.fps_scale = 1 # 30 FPS
-        elif self.quality == self.Quality.QHD60FPS:
+        elif self.quality == self.Quality.QHD60:
             self.name = "bad_apple@1440p60fps"
             self.url = "https://archive.org/download/bad-apple-resources/bad_apple%401440p60fps.mp4"
             self.sha1 = "6204b3173ec745f4c583b6dde11f858a7886b8d0"
@@ -170,7 +170,7 @@ class BadApple:
 
 
 # Create the BadApple object
-ba = BadApple(BadApple.Quality.QHD60FPS)
+ba = BadApple(BadApple.Quality.QHD60)
 
 # Make capture object for playback
 video = cv2.VideoCapture(ba.filename)
