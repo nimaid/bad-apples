@@ -22,8 +22,8 @@ class BadApple:
         FHD60 = 5 # 1080p @ 60 FPS
         QHD = 6 # 1440p @ 30 FPS
         QHD60 = 7 # 1440p @ 60 FPS
-        UHD = 6 # 2160p @ 30 FPS
-        UHD60 = 7 # 2160p @ 60 FPS
+        UHD = 8 # 2160p @ 30 FPS
+        UHD60 = 9 # 2160p @ 60 FPS
     
     def __init__(
         self,
