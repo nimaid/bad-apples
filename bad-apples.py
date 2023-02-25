@@ -186,6 +186,13 @@ upscale_method = cv2.INTER_NEAREST
 # How much to scale down the display by
 downscale_factor = 3 # 4 to go from 2160p to 720p
 downscale_method = cv2.INTER_LINEAR
+# Flow settings
+flow_window_size = 15 * ba.img_scale
+flow_layers = 4
+flow_iterations = 4
+# Blur settings
+blur_px = 20 * ba.img_scale
+blur_sigma = 300
 
 # Get video dimensions and FPS
 frame_width = ba.width
@@ -223,13 +230,6 @@ prev_frame = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
 prev_motion_frame = np.zeros_like(frame1)
 hsv = np.zeros_like(frame1)
 hsv[..., 1] = 255
-# Setup variables
-flow_window_size = 15 * ba.img_scale
-flow_layers = 4
-flow_iterations = 4
-
-blur_px = 20 * ba.img_scale
-blur_sigma = 300
 # Play the video
 user_stopped = False
 frame_count = 1
