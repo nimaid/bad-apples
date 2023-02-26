@@ -182,7 +182,7 @@ class BadApple:
 
 
 # Create the BadApple object
-ba = BadApple(BadApple.Quality.UHD60)
+ba = BadApple(BadApple.Quality.FHD60)
 
 # Make capture object for playback
 video = cv2.VideoCapture(ba.filename)
