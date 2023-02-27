@@ -285,7 +285,7 @@ class AppleMotionFlow:
         second_frame_gray = cv2.cvtColor(second_frame, cv2.COLOR_BGR2GRAY)
         
         # Get flow
-        if self.flow is None:
+        if self.flow is None or True: # Oh god it SUCKS why doesn't it work never give it the flow for the love of god
             flow_in = None
             flow_opts = 0
         else:
