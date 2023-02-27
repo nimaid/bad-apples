@@ -246,8 +246,8 @@ If I make another move, if I take another step
 
 42
 00:03:05,201 --> 00:03:08,712
-すべて壊すよ　すべて壊すの
-Subete kowasu yo subete kowasu no
+すべて壊すわ　すべて壊すわ
+Subete kowasu wa subete kowasu wa
 Then it all would fall apart. There'd be nothing of me left
 
 43
