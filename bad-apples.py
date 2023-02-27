@@ -29,7 +29,7 @@ class BadApple:
         self,
         quality=None
     ):
-        if quality == None: # default to BadApple.Quality.SD
+        if quality is None: # default to BadApple.Quality.SD
             self.quality = self.Quality.SD
         else:
             self.quality = quality
@@ -102,11 +102,27 @@ class BadApple:
         self.height = 360 * self.img_scale
         self.size = (self.width, self.height)
         self.fps = 30.0 * self.fps_scale
+        self.shape = (self.height, self.width, 3)
         
         # Get the file
         self.ensure_bad_apple()
         
         self.filename_full = os.path.realpath(self.filename)
+        
+        # Open the video file
+        self.video = None
+        result = self.open()
+        if result != self.ErrorCode.ERR_NONE:
+            raise RuntimeError("Could not open source video {}".format(self.filename))
+        # Get total frames
+        self.total_frames = int(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
+        
+        self.frame = None
+        self.frame_num = 0
+    
+    # The function called when the object is deleted
+    def __del__(self):
+        self.close()
         
     # Some useful return codes
     class ErrorCode(Enum):
@@ -116,6 +132,7 @@ class BadApple:
         ERR_FILE_MISSING = 3
         ERR_FILE_CORRUPT = 4
         ERR_USER_STOP = 5
+        ERR_CANT_OPEN = 6
 
     # Function to validate if the video is missing or corrupt
     def validate_bad_apple(self):
@@ -179,47 +196,230 @@ class BadApple:
                 raise KeyboardInterrupt("User interrupted the download process.")
             result = self.validate_bad_apple()
         print("Bad Apple is ready! ({})\n".format(self.filename))
+    
+    # Function to open the source video
+    def open(self):
+        # Check if already opened
+        if self.video is not None:
+            return self.ErrorCode.ERR_NONE
+        # Make capture object for playback
+        video = cv2.VideoCapture(self.filename)
+        # Check that the capture object is ready
+        if not video.isOpened():
+            print("Could not open source video!\n")
+            self.video = None
+            return self.ErrorCode.ERR_CANT_OPEN
+        else:
+            self.video = video
+            return self.ErrorCode.ERR_NONE
+    
+    # Function to close the source video
+    def close(self):
+        if self.video is not None:
+            self.video.release()
+            self.video = None
+    
+    # Function to read next frame
+    def read_frame(self):
+        ret, frame = self.video.read()
+        if ret:
+            self.frame_num += 1
+            self.frame = frame
+            return frame
+        else: # Cant read frame, video is probably over
+            self.frame_num = -1
+            self.frame = None
+            return None
 
 
-# Create the BadApple object
-ba = BadApple(BadApple.Quality.FHD60)
+# A class to handle single-pass motion flow computation
+class AppleMotionFlow:
+    def __init__(
+        self,
+        bad_apple, # Existing BadApple object
+        flow_window=15, # Relative to video scale, higher gets bigger motions but is blurrier
+        flow_layers=4, # Number of layers in computation, more is better but slower
+        flow_iterations=4, # Number of iterations per layer, more is better but slower
+        flow_poly_n=7,
+        flow_poly_sigma=1.5,
+        blur_amount=20, # Relative to video scale
+        blur_sigma=300,
+        fade_speed=4 # Relative to FPS
+    ):
+        self.ba = bad_apple
+        self.flow_window_size = flow_window * self.ba.img_scale
+        self.flow_layers = flow_layers
+        self.flow_iterations = flow_iterations
+        self.flow_poly_n = flow_poly_n
+        self.flow_poly_sigma = flow_poly_sigma
+        self.blur_px = blur_amount * self.ba.img_scale
+        self.blur_sigma = blur_sigma
+        self.fade_amt = min(round(fade_speed / ba.fps_scale), 1)
+        
+        # Make image to fade with
+        self.img_sub = np.ones(ba.shape) * self.fade_amt
+        
+        # Make HSV array
+        self.hsv = np.zeros(ba.shape).astype(np.uint8)
+        self.hsv[..., 1] = 255 # Full saturation
+        
+        # Init frames
+        self.src_frame = None
+        self.prev_src_frame = None
+        self.motion_frame = None
+        self.prev_motion_frame = None
+    
+    # Function to compute a single flow frame from 2 input frames
+    # Does not modify object at all
+    def get_flow(
+        self,
+        first_frame,
+        second_frame
+    ):  
+        # Convert to gray
+        first_frame_gray = cv2.cvtColor(first_frame, cv2.COLOR_BGR2GRAY)
+        second_frame_gray = cv2.cvtColor(second_frame, cv2.COLOR_BGR2GRAY)
+        
+        # Get flow
+        flow = cv2.calcOpticalFlowFarneback(
+            first_frame_gray,
+            second_frame_gray,
+            None,
+            0.5, # Layer "pyramid" size ratio
+            self.flow_layers,
+            self.flow_window_size,
+            self.flow_iterations,
+            self.flow_poly_n,
+            self.flow_poly_sigma,
+            0
+        )
+        mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
+        self.hsv[..., 0] = ang*180/np.pi/2
+        self.hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
+        flow_frame = cv2.cvtColor(self.hsv, cv2.COLOR_HSV2BGR)
+    
+        # Smooth colors with a blur
+        smooth_frame = cv2.bilateralFilter(
+            flow_frame,
+            self.blur_px,
+            self.blur_sigma,
+            self.blur_sigma
+        )
+        
+        return smooth_frame
+    
+    # Function to read next frame from video file
+    def get_next_src_frame(self):
+        frame = self.ba.read_frame()
+        # Check if frame could not be gotten
+        if frame is None:
+            return False
+        self.prev_src_frame = self.src_frame
+        self.src_frame = frame
+        return True
+    # Alternate way to set with external frames
+    def set_next_src_frames(self, src_frame, prev_src_frame=None):
+        if prev_src_frame is None:
+            self.prev_src_frame = self.src_frame
+        else:
+            self.prev_src_frame = prev_src_frame
+        
+        self.src_frame = src_frame
+    
+    # Computes the next motion flow frame
+    def calc_motion_frame(
+        self,
+        read_new_frame=True # Set to false if the self.ba object gets updated with read_frame() elsewhere
+    ):
+        if read_new_frame:
+            result = self.get_next_src_frame()
+        elif None in [self.src_frame, self.prev_src_frame]:
+            raise ValueError("Function was told not to read new source frames, but needs new source frames.")
+        
+        # If we haven't gotten the first frame yet, get it
+        if self.src_frame is None:
+            result = not ((not result) | (not self.get_next_src_frame()))
+        # If we haven't gotten the second frame yet, get it
+        if self.prev_src_frame is None:
+            result = not ((not result) | (not self.get_next_src_frame()))
+        
+        if not result:
+            self.motion_frame = None
+            return None
+        
+        # Compute the optical flow motion frame
+        motion_frame = self.get_flow(self.prev_src_frame, self.src_frame)
+        
+        # layer over old motion frame if it exists
+        if self.prev_motion_frame is None: # We don't have both, just set the motion current frame be the first frame
+            layered_motion_frame = motion_frame
+        else:
+            # Darken last motion frame
+            motion_frame_bg = np.subtract(self.motion_frame, self.img_sub.astype(np.int16)).clip(0, 255).astype(np.uint8)
+            # Add over last motion frame by blending with lighten
+            layered_motion_frame = np.clip(np.maximum(motion_frame_bg, motion_frame), 0, 256).astype(np.uint8)
+            
+            
+        self.prev_motion_frame = self.motion_frame
+        self.motion_frame = layered_motion_frame
+        
+        return self.motion_frame
+    
+    # Function used to layer motion colors over the source video
+    # Does not modify the object
+    # Currently using difference
+    def layer_over_image(self, bottom, top):
+        # Add alpha channel for blend_modes module
+        bottom_alpha = cv2.cvtColor(bottom, cv2.COLOR_RGB2RGBA)
+        top_alpha = cv2.cvtColor(top, cv2.COLOR_RGB2RGBA)
+        
+        # Convert to float for blend_modes module
+        bottom_alpha_float = bottom_alpha / 255.0 
+        top_alpha_float = top_alpha / 255.0 
+        
+        # Do the blending
+        blend_frame = bm.difference(top_alpha_float, bottom_alpha_float, 1.0)
+        
+        # Convert back to int
+        final_frame_alpha = (blend_frame * 255).astype(np.uint8)
+        
+        # Strip alpha channel
+        final_frame = cv2.cvtColor(final_frame_alpha, cv2.COLOR_RGBA2RGB)
+        
+        return final_frame
+    
+    def calc_full_frame(
+        self,
+        read_new_frame=True # Set to false if the self.ba object gets updated with read_frame() elsewhere
+    ):
+        motion_frame = self.calc_motion_frame(read_new_frame)
+        if motion_frame is None:
+            self.frame = None
+            return None
+        layered_frame = self.layer_over_image(motion_frame, self.src_frame)
+        
+        self.frame = layered_frame
+        return self.frame
 
-# Make capture object for playback
-video = cv2.VideoCapture(ba.filename)
-# Check that the capture object is ready
-if video.isOpened():
-    print('Video successfully opened!\n')
-else:
-    print('Something went wrong!\n')
+
 
 # How much to scale outputs up by
 upscale_factor = 1 # 6 to go from 360p to 2160p
 upscale_method = cv2.INTER_NEAREST
 # How much to scale down the display by
-downscale_factor = 4 # 4 to go from 2160p to 720p
+downscale_factor = 1 # 4 to go from 2160p to 720p
 downscale_method = cv2.INTER_LINEAR
 
-# Flow settings
-flow_window_size = 15 * ba.img_scale
-flow_layers = 4
-flow_iterations = 4
-# Blur settings
-blur_px = 20 * ba.img_scale
-blur_sigma = 300
-# Fade settings
-fade_amt = min(round(4 / ba.fps_scale), 1)
+
+# Create the BadApple object
+ba = BadApple(BadApple.Quality.SD)
+
+# Create the AppleMotionFlow object
+mf = AppleMotionFlow(ba, flow_layers=1, flow_iterations=1)
 
 # Make output filenames
 temp_filename = ba.name + "_temp" + ba.ext
 new_filename = ba.name + "_edit" + ba.ext
-
-# Get video dimensions and FPS
-frame_width = ba.width
-frame_height = ba.height
-video_size = (round(frame_width*upscale_factor), round(frame_height*upscale_factor))
-display_size = (round(frame_width/downscale_factor), round(frame_height/downscale_factor))
-fps = ba.fps
-total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
 
 # Delete existing outputs
 try:
@@ -231,75 +431,39 @@ try:
 except:
     pass
 
+# Calculate video sizes
+video_size = (round(ba.width*upscale_factor), round(ba.height*upscale_factor))
+display_size = (round(ba.width/downscale_factor), round(ba.height/downscale_factor))
+
 # Start writing new file
 new_video = cv2.VideoWriter(
     filename=temp_filename,
     fourcc=cv2.VideoWriter_fourcc(*'mp4v'),
-    fps=fps,
+    fps=ba.fps,
     frameSize=video_size
 )
 
 # Make playback window
 windowName = 'Bad Apple'
 cv2.namedWindow(windowName)
-# Read the first frame
-ret, frame1 = video.read()
-prev_frame = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
-prev_motion_frame = np.zeros_like(frame1)
-hsv = np.zeros_like(frame1)
-hsv[..., 1] = 255
-# Make utility variables
-img_sub = np.ones_like(frame1) * fade_amt
+
+# Get first frame of the bad apple video
+frame1 = ba.read_frame()
+mf.set_next_src_frames(frame1)
+
 # Play the video
 user_stopped = False
-frame_count = 1
 while True:
-    ret, frame2 = video.read() # Read a single frame 
-    if not ret: # This mean it could not read the frame 
+    print("Processing frame {}/{}".format(ba.frame_num, ba.total_frames))
+    # Get flow
+    final_frame = mf.calc_full_frame()
+    
+    # This means it could not read the frame 
+    if final_frame is None:
          print("Could not read the frame, video is likely over.")   
          cv2.destroyWindow(windowName)
-         video.release()
+         ba.close()
          break
-    
-    frame_count += 1
-    
-    print("Processing frame {}/{}".format(frame_count, total_frames))
-    
-    next_frame = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
-    
-    # Get flow
-    flow = cv2.calcOpticalFlowFarneback(prev_frame, next_frame, None, 0.5, flow_layers, flow_window_size, flow_iterations, 7, 1.5, 0)
-    mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
-    hsv[..., 0] = ang*180/np.pi/2
-    hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
-    flow_frame = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-    prev_frame = next_frame
-    
-    # Smooth colors with a blur
-    smooth_frame = cv2.bilateralFilter(flow_frame, blur_px, blur_sigma, blur_sigma)
-    
-    # Darken last motion frame
-    motion_frame_bg = np.subtract(prev_motion_frame, img_sub.astype(np.int16)).clip(0, 255).astype(np.uint8)
-    # Add over last motion frame by blending with lighten
-    motion_frame = np.clip(np.maximum(motion_frame_bg, smooth_frame), 0, 256).astype(np.uint8)
-    
-    
-    # Blend motion colors over original video
-    next_frame_bgr = cv2.cvtColor(next_frame, cv2.COLOR_GRAY2BGR)
-    # Add alpha channel for blend_modes module
-    next_frame_bgr_alpha = cv2.cvtColor(next_frame_bgr, cv2.COLOR_RGB2RGBA)
-    motion_frame_alpha = cv2.cvtColor(motion_frame, cv2.COLOR_RGB2RGBA)
-    # Convert to float for blend_modes module
-    next_frame_bgr_float = next_frame_bgr_alpha / 255.0 
-    motion_frame_float = motion_frame_alpha / 255.0 
-    # Do the blending
-    blend_frame = bm.difference(next_frame_bgr_float, motion_frame_float, 1.0)
-    #blend_frame = motion_frame_float
-    # Convert back to int
-    final_frame_alpha = (blend_frame * 255).astype(np.uint8)
-    # Strip alpha channel
-    final_frame = cv2.cvtColor(final_frame_alpha, cv2.COLOR_RGBA2RGB)
-    
     
     # Display frame
     if downscale_factor != 1:
@@ -317,9 +481,6 @@ while True:
     # Save frame
     new_video.write(final_video_frame)
     
-    # Update last motion frame
-    prev_motion_frame = motion_frame
-    
     # Exit hotkey
     stop_playing = False
     waitKey = (cv2.waitKey(1) & 0xFF)
@@ -330,7 +491,7 @@ while True:
         print("Closing video and exiting...")
         user_stopped = True
         cv2.destroyWindow(windowName)
-        video.release()
+        ba.close()
         break
 
 # Save new video
