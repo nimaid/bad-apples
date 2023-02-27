@@ -269,6 +269,9 @@ class AppleMotionFlow:
         self.prev_src_frame = None
         self.motion_frame = None
         self.prev_motion_frame = None
+        
+        # Init other vars
+        self.flow = None
     
     # Function to compute a single flow frame from 2 input frames
     # Does not modify object at all
@@ -282,18 +285,25 @@ class AppleMotionFlow:
         second_frame_gray = cv2.cvtColor(second_frame, cv2.COLOR_BGR2GRAY)
         
         # Get flow
+        if self.flow is None:
+            flow_in = None
+            flow_opts = 0
+        else:
+            flow_in = self.flow
+            flow_opts = cv2.OPTFLOW_USE_INITIAL_FLOW
         flow = cv2.calcOpticalFlowFarneback(
             first_frame_gray,
             second_frame_gray,
-            None,
-            0.5, # Layer "pyramid" size ratio
-            self.flow_layers,
-            self.flow_window_size,
-            self.flow_iterations,
-            self.flow_poly_n,
-            self.flow_poly_sigma,
-            0
+            flow_in,
+            pyr_scale=0.5, # Layer "pyramid" size ratio
+            levels=self.flow_layers,
+            winsize=self.flow_window_size,
+            iterations=self.flow_iterations,
+            poly_n=self.flow_poly_n,
+            poly_sigma=self.flow_poly_sigma,
+            flags=flow_opts
         )
+        self.flow = flow
         mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
         self.hsv[..., 0] = ang*180/np.pi/2
         self.hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
@@ -546,11 +556,11 @@ ba = BadApple(BadApple.Quality.SD60)
 # Create the AppleMotionFlowMulti object
 mfm = AppleMotionFlowMulti(
     ba,
-    flow_layers=4,
-    flow_iterations=4,
-    flow_windows_count=4,
+    flow_layers=1,
+    flow_iterations=1,
+    flow_windows_count=6,
     flow_windows_min=5,
-    flow_windows_max=25,
+    flow_windows_max=35,
     flow_windows_balance=False
 )
 
