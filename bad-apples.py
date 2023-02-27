@@ -242,7 +242,7 @@ class AppleMotionFlow:
         flow_iterations=4, # Number of iterations per layer, more is better but slower
         flow_poly_n=7,
         flow_poly_sigma=1.5,
-        blur_amount=20, # Relative to video scale
+        blur_amount=1.5, # Relative to video scale and flow window
         blur_sigma=300,
         fade_speed=4 # Relative to FPS
     ):
@@ -252,9 +252,9 @@ class AppleMotionFlow:
         self.flow_iterations = flow_iterations
         self.flow_poly_n = flow_poly_n
         self.flow_poly_sigma = flow_poly_sigma
-        self.blur_px = blur_amount * self.ba.img_scale
+        self.blur_px = max(round(blur_amount * self.flow_window_size), 1)
         self.blur_sigma = blur_sigma
-        self.fade_amt = min(round(fade_speed / ba.fps_scale), 1)
+        self.fade_amt = max(round(fade_speed / ba.fps_scale), 1)
         
         # Make image to fade with
         self.img_sub = np.ones(ba.shape) * self.fade_amt
@@ -427,7 +427,7 @@ class AppleMotionFlowMulti:
         flow_iterations=4, # Number of iterations per layer, more is better but slower
         flow_poly_n=7,
         flow_poly_sigma=1.5,
-        blur_amount=20, # Relative to video scale
+        blur_amount=1.5, # Relative to video scale and flow window
         blur_sigma=300,
         fade_speed=4 # Relative to FPS
     ):
@@ -559,7 +559,7 @@ mfm = AppleMotionFlowMulti(
     flow_layers=1,
     flow_iterations=1,
     flow_windows_count=6,
-    flow_windows_min=5,
+    flow_windows_min=7,
     flow_windows_max=35,
     flow_windows_balance=False
 )
