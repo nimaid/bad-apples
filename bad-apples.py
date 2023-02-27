@@ -323,25 +323,23 @@ class AppleMotionFlow:
             self.prev_src_frame = self.src_frame
         else:
             self.prev_src_frame = prev_src_frame
-        
         self.src_frame = src_frame
     
     # Computes the next motion flow frame
     def calc_motion_frame(
         self,
-        read_new_frame=True # Set to false if the self.ba object gets updated with read_frame() elsewhere
+        read_new_frame=True, # Set to False if the self.ba object gets updated with read_frame() elsewhere
+        trails=True # If we want to use trails or just get a single motion frame
     ):
         if read_new_frame:
             result = self.get_next_src_frame()
-        elif None in [self.src_frame, self.prev_src_frame]:
+            # If we haven't gotten the second frame yet, get it
+            if self.prev_src_frame is None:
+                result = not ((not result) | (not self.get_next_src_frame()))
+        elif (self.src_frame is None) or (self.prev_src_frame is None):
             raise ValueError("Function was told not to read new source frames, but needs new source frames.")
-        
-        # If we haven't gotten the first frame yet, get it
-        if self.src_frame is None:
-            result = not ((not result) | (not self.get_next_src_frame()))
-        # If we haven't gotten the second frame yet, get it
-        if self.prev_src_frame is None:
-            result = not ((not result) | (not self.get_next_src_frame()))
+        else:
+            result = True
         
         if not result:
             self.motion_frame = None
@@ -350,14 +348,18 @@ class AppleMotionFlow:
         # Compute the optical flow motion frame
         motion_frame = self.get_flow(self.prev_src_frame, self.src_frame)
         
-        # layer over old motion frame if it exists
-        if self.prev_motion_frame is None: # We don't have both, just set the motion current frame be the first frame
-            layered_motion_frame = motion_frame
+        # If we are going to do layering
+        if trails:
+            # layer over old motion frame if it exists
+            if self.prev_motion_frame is None: # We don't have both, just set the motion current frame be the first frame
+                layered_motion_frame = motion_frame
+            else:
+                # Darken last motion frame
+                motion_frame_bg = np.subtract(self.motion_frame, self.img_sub.astype(np.int16)).clip(0, 255).astype(np.uint8)
+                # Add over last motion frame by blending with lighten
+                layered_motion_frame = np.clip(np.maximum(motion_frame_bg, motion_frame), 0, 256).astype(np.uint8)
         else:
-            # Darken last motion frame
-            motion_frame_bg = np.subtract(self.motion_frame, self.img_sub.astype(np.int16)).clip(0, 255).astype(np.uint8)
-            # Add over last motion frame by blending with lighten
-            layered_motion_frame = np.clip(np.maximum(motion_frame_bg, motion_frame), 0, 256).astype(np.uint8)
+            layered_motion_frame = motion_frame
             
             
         self.prev_motion_frame = self.motion_frame
@@ -401,7 +403,122 @@ class AppleMotionFlow:
         self.frame = layered_frame
         return self.frame
 
-
+# A class to handle multi-pass motion flow computation
+class AppleMotionFlowMulti:
+    def __init__(
+        self,
+        bad_apple, # Existing BadApple object
+        flow_windows_count=3, # Number of flow calculations to do at different sizes
+        flow_windows_min=5, # Relative to video scale, higher gets bigger motions but is blurrier
+        flow_windows_max=25, # Relative to video scale, higher gets bigger motions but is blurrier
+        flow_windows_balance=True, # If we want to divide each motion layer brightness based on number of windows
+        flow_layers=4, # Number of layers in computation, more is better but slower
+        flow_iterations=4, # Number of iterations per layer, more is better but slower
+        flow_poly_n=7,
+        flow_poly_sigma=1.5,
+        blur_amount=20, # Relative to video scale
+        blur_sigma=300,
+        fade_speed=4 # Relative to FPS
+    ):
+        self.num_windows = flow_windows_count
+        self.flow_windows_balance = flow_windows_balance
+        # Make AppleMotionFlow objects
+        flow_windows = [int(round(x)) for x in np.linspace(flow_windows_min, flow_windows_max, self.num_windows)]
+        self.ba = bad_apple
+        self.mf = [AppleMotionFlow(
+            bad_apple=self.ba,
+            flow_window=flow_window,
+            flow_layers=flow_layers,
+            flow_iterations=flow_iterations,
+            flow_poly_n=flow_poly_n,
+            flow_poly_sigma=flow_poly_sigma,
+            blur_amount=blur_amount,
+            blur_sigma=blur_sigma,
+            fade_speed=fade_speed # Relative to FPS
+        ) for flow_window in flow_windows]
+        
+        # Init frames
+        self.src_frame = None
+        self.prev_src_frame = None
+        self.motion_frame = None
+        self.prev_motion_frame = None
+    
+    # Function to read next frame from video file
+    def get_next_src_frame(self):
+        frame = self.ba.read_frame()
+        # Check if frame could not be gotten
+        if frame is None:
+            return False
+        self.prev_src_frame = self.src_frame
+        self.src_frame = frame
+        return True
+    # Alternate way to set with external frames
+    def set_next_src_frames(self, src_frame, prev_src_frame=None):
+        if prev_src_frame is None:
+            self.prev_src_frame = self.src_frame
+        else:
+            self.prev_src_frame = prev_src_frame
+        self.src_frame = src_frame
+    
+    # Function used to layer motion frames together
+    # Does not modify the object
+    # Currently using lighten
+    def layer_motion_frames(self, bottom, top):
+        # Add alpha channel for blend_modes module
+        bottom_alpha = cv2.cvtColor(bottom, cv2.COLOR_RGB2RGBA)
+        top_alpha = cv2.cvtColor(top, cv2.COLOR_RGB2RGBA)
+        
+        # Convert to float for blend_modes module
+        bottom_alpha_float = bottom_alpha / 255.0 
+        top_alpha_float = top_alpha / 255.0 
+        
+        # Do the blending
+        blend_frame = bm.lighten_only(top_alpha_float, bottom_alpha_float, 1.0)
+        
+        # Convert back to int
+        final_frame_alpha = (blend_frame * 255).astype(np.uint8)
+        
+        # Strip alpha channel
+        final_frame = cv2.cvtColor(final_frame_alpha, cv2.COLOR_RGBA2RGB)
+        
+        return final_frame
+    
+    # Computes the next motion flow frame
+    def calc_motion_frame(self):
+        result = self.get_next_src_frame()
+        # If we haven't gotten the second frame yet, get it
+        if self.prev_src_frame is None:
+            result = not ((not result) | (not self.get_next_src_frame()))
+        
+        if not result:
+            self.motion_frame = None
+            return None
+        
+        # Compute the optical flow motion frame
+        motion_frame = np.zeros(self.ba.shape).astype(np.uint8)
+        for motion_flow in self.mf:
+            motion_flow.set_next_src_frames(self.src_frame, self.prev_src_frame)
+            motion_flow_frame = motion_flow.calc_motion_frame(read_new_frame=False, trails=False)
+            # Darken based on number of windows
+            if self.flow_windows_balance:
+                motion_flow_frame = np.around(motion_flow_frame / self.num_windows).astype(np.uint8)
+            # Layer over previous motion flow frames
+            motion_frame = self.layer_motion_frames(motion_flow_frame, motion_frame)
+        
+        # layer over old motion frame if it exists
+        if self.prev_motion_frame is None: # We don't have both, just set the motion current frame be the first frame
+            layered_motion_frame = motion_frame
+        else:
+            # Darken last motion frame
+            motion_frame_bg = np.subtract(self.motion_frame, self.mf[0].img_sub.astype(np.int16)).clip(0, 255).astype(np.uint8)
+            # Add over last motion frame by blending with lighten
+            layered_motion_frame = np.clip(np.maximum(motion_frame_bg, motion_frame), 0, 256).astype(np.uint8)
+            
+            
+        self.prev_motion_frame = self.motion_frame
+        self.motion_frame = layered_motion_frame
+        
+        return self.motion_frame
 
 # How much to scale outputs up by
 upscale_factor = 1 # 6 to go from 360p to 2160p
@@ -415,7 +532,16 @@ downscale_method = cv2.INTER_LINEAR
 ba = BadApple(BadApple.Quality.SD)
 
 # Create the AppleMotionFlow object
-mf = AppleMotionFlow(ba, flow_layers=1, flow_iterations=1)
+#mf = AppleMotionFlow(ba, flow_layers=1, flow_iterations=1)
+mfm = AppleMotionFlowMulti(
+    ba,
+    flow_layers=3,
+    flow_iterations=4,
+    flow_windows_count=4,
+    flow_windows_min=5,
+    flow_windows_max=50,
+    flow_windows_balance=False
+)
 
 # Make output filenames
 temp_filename = ba.name + "_temp" + ba.ext
@@ -449,14 +575,15 @@ cv2.namedWindow(windowName)
 
 # Get first frame of the bad apple video
 frame1 = ba.read_frame()
-mf.set_next_src_frames(frame1)
+mfm.set_next_src_frames(frame1)
 
 # Play the video
 user_stopped = False
 while True:
     print("Processing frame {}/{}".format(ba.frame_num, ba.total_frames))
     # Get flow
-    final_frame = mf.calc_full_frame()
+    #final_frame = mfm.calc_full_frame()
+    final_frame = mfm.calc_motion_frame()
     
     # This means it could not read the frame 
     if final_frame is None:
