@@ -264,6 +264,7 @@ class AppleMotionFlow:
         self.hsv[..., 1] = 255 # Full saturation
         
         # Init frames
+        self.frame = None
         self.src_frame = None
         self.prev_src_frame = None
         self.motion_frame = None
@@ -438,6 +439,7 @@ class AppleMotionFlowMulti:
         ) for flow_window in flow_windows]
         
         # Init frames
+        self.frame = None
         self.src_frame = None
         self.prev_src_frame = None
         self.motion_frame = None
@@ -519,6 +521,16 @@ class AppleMotionFlowMulti:
         self.motion_frame = layered_motion_frame
         
         return self.motion_frame
+    
+    def calc_full_frame(self):
+        motion_frame = self.calc_motion_frame()
+        if motion_frame is None:
+            self.frame = None
+            return None
+        layered_frame = self.mf[0].layer_over_image(motion_frame, self.src_frame)
+        
+        self.frame = layered_frame
+        return self.frame
 
 # How much to scale outputs up by
 upscale_factor = 1 # 6 to go from 360p to 2160p
@@ -529,17 +541,17 @@ downscale_method = cv2.INTER_LINEAR
 
 
 # Create the BadApple object
-ba = BadApple(BadApple.Quality.SD)
+ba = BadApple(BadApple.Quality.SD60)
 
 # Create the AppleMotionFlow object
 #mf = AppleMotionFlow(ba, flow_layers=1, flow_iterations=1)
 mfm = AppleMotionFlowMulti(
     ba,
     flow_layers=3,
-    flow_iterations=4,
+    flow_iterations=3,
     flow_windows_count=4,
     flow_windows_min=5,
-    flow_windows_max=50,
+    flow_windows_max=25,
     flow_windows_balance=False
 )
 
@@ -582,8 +594,7 @@ user_stopped = False
 while True:
     print("Processing frame {}/{}".format(ba.frame_num, ba.total_frames))
     # Get flow
-    #final_frame = mfm.calc_full_frame()
-    final_frame = mfm.calc_motion_frame()
+    final_frame = mfm.calc_full_frame()
     
     # This means it could not read the frame 
     if final_frame is None:
