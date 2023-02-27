@@ -543,12 +543,11 @@ downscale_method = cv2.INTER_LINEAR
 # Create the BadApple object
 ba = BadApple(BadApple.Quality.SD60)
 
-# Create the AppleMotionFlow object
-#mf = AppleMotionFlow(ba, flow_layers=1, flow_iterations=1)
+# Create the AppleMotionFlowMulti object
 mfm = AppleMotionFlowMulti(
     ba,
-    flow_layers=3,
-    flow_iterations=3,
+    flow_layers=4,
+    flow_iterations=4,
     flow_windows_count=4,
     flow_windows_min=5,
     flow_windows_max=25,
