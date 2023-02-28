@@ -242,8 +242,8 @@ class AppleMotionFlow:
         flow_iterations=4, # Number of iterations per layer, more is better but slower
         flow_poly_n=7,
         flow_poly_sigma=1.5,
-        blur_amount=2.0, # Relative to video scale and flow window
-        fade_speed=4 # Relative to FPS
+        blur_amount=1.5, # Relative to video scale and flow window
+        fade_speed=2 # Relative to FPS
     ):
         self.ba = bad_apple
         self.flow_window_size = round(flow_window * self.ba.img_scale)
@@ -423,8 +423,8 @@ class AppleMotionFlowMulti:
         flow_iterations=4, # Number of iterations per layer, more is better but slower
         flow_poly_n=7,
         flow_poly_sigma=1.5,
-        blur_amount=2.0, # Relative to video scale and flow window
-        fade_speed=4 # Relative to FPS
+        blur_amount=1.5, # Relative to video scale and flow window
+        fade_speed=2 # Relative to FPS
     ):
         self.num_windows = flow_windows_count
         self.flow_windows_balance = flow_windows_balance
