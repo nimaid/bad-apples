@@ -635,14 +635,14 @@ except:
     pass
 
 # Calculate video sizes
-video_size = (round(ba.width*upscale_factor), round(ba.height*upscale_factor))
-display_size = (round(ba.width/downscale_factor), round(ba.height/downscale_factor))
+video_size = (round(ba_4k.width*upscale_factor), round(ba_4k.height*upscale_factor))
+display_size = (round(ba_4k.width/downscale_factor), round(ba_4k.height/downscale_factor))
 
 # Start writing new file
 new_video = cv2.VideoWriter(
     filename=temp_filename,
     fourcc=cv2.VideoWriter_fourcc(*'mp4v'),
-    fps=ba.fps,
+    fps=ba_4k.fps,
     frameSize=video_size
 )
 
@@ -658,8 +658,12 @@ mfm.set_next_src_frames(frame1)
 user_stopped = False
 while True:
     print("Processing frame {}/{}".format(ba.frame_num, ba.total_frames))
-    # Get flow
-    final_frame = mfm.calc_full_frame()
+    # Get 720p motion frame
+    motion_frame = mfm.calc_motion_frame()
+    # Scale up to 4k
+    motion_frame_scaled = cv2.resize(motion_frame, ba_4k.size, 0, 0, interpolation = cv2.INTER_LINEAR)
+    # Layer them together
+    final_frame = mfm.mf[0].layer_over_image(ba_4k.frame, motion_frame_scaled)
     
     # This means it could not read the frame 
     if final_frame is None:
