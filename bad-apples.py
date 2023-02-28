@@ -663,7 +663,7 @@ while True:
     # Scale up to 4k
     motion_frame_scaled = cv2.resize(motion_frame, ba_4k.size, 0, 0, interpolation = cv2.INTER_LINEAR)
     # Layer them together
-    final_frame = mfm.mf[0].layer_over_image(ba_4k.frame, motion_frame_scaled)
+    final_frame = mfm.mf[0].layer_over_image(motion_frame_scaled, ba_4k.frame)
     
     # This means it could not read the frame 
     if final_frame is None:
