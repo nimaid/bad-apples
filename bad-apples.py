@@ -647,7 +647,8 @@ new_video = cv2.VideoWriter(
 )
 
 # Make playback window
-windowName = 'Bad Apple'
+quit_key = "q"
+windowName = "Bad Apple (press {} to quit)".format(quit_key.upper())
 cv2.namedWindow(windowName)
 
 # Get first frame of the bad apple video
@@ -691,7 +692,7 @@ while True:
     # Exit hotkey
     stop_playing = False
     waitKey = (cv2.waitKey(1) & 0xFF)
-    if waitKey == ord('q'): # If Q pressed
+    if waitKey == ord(quit_key): # If quit key pressed
         stop_playing = True
     
     if stop_playing:
