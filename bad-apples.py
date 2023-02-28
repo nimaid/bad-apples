@@ -242,8 +242,8 @@ class AppleMotionFlow:
         flow_iterations=4, # Number of iterations per layer, more is better but slower
         flow_poly_n=7,
         flow_poly_sigma=1.5,
-        blur_amount=1.5, # Relative to video scale and flow window
-        blur_sigma=300,
+        blur_amount=1.0, # Relative to video scale and flow window
+        blur_sigma=2.0,
         fade_speed=4 # Relative to FPS
     ):
         self.ba = bad_apple
@@ -253,6 +253,9 @@ class AppleMotionFlow:
         self.flow_poly_n = flow_poly_n
         self.flow_poly_sigma = flow_poly_sigma
         self.blur_px = max(round(blur_amount * self.flow_window_size), 1)
+        # Make sure it's odd
+        if self.blur_px%2 == 0:
+            self.blur_px += 1
         self.blur_sigma = blur_sigma
         self.fade_amt = max(round(fade_speed / ba.fps_scale), 1)
         
@@ -310,13 +313,15 @@ class AppleMotionFlow:
         flow_frame = cv2.cvtColor(self.hsv, cv2.COLOR_HSV2BGR)
     
         # Smooth colors with a blur
+        '''
         smooth_frame = cv2.bilateralFilter(
             flow_frame,
             self.blur_px,
             self.blur_sigma,
             self.blur_sigma
         )
-        
+        '''
+        smooth_frame = cv2.GaussianBlur(flow_frame, (self.blur_px,self.blur_px), self.blur_sigma)
         return smooth_frame
     
     # Function to read next frame from video file
@@ -427,8 +432,8 @@ class AppleMotionFlowMulti:
         flow_iterations=4, # Number of iterations per layer, more is better but slower
         flow_poly_n=7,
         flow_poly_sigma=1.5,
-        blur_amount=1.5, # Relative to video scale and flow window
-        blur_sigma=300,
+        blur_amount=1.0, # Relative to video scale and flow window
+        blur_sigma=2.0,
         fade_speed=4 # Relative to FPS
     ):
         self.num_windows = flow_windows_count
@@ -557,7 +562,7 @@ ba = BadApple(BadApple.Quality.SD60)
 mfm = AppleMotionFlowMulti(
     ba,
     flow_layers=1,
-    flow_iterations=1,
+    flow_iterations=3,
     flow_windows_count=6,
     flow_windows_min=7,
     flow_windows_max=35,
