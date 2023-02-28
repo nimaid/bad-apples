@@ -279,18 +279,19 @@ class AppleMotionFlow:
     def get_flow(
         self,
         first_frame,
-        second_frame
+        second_frame,
+        prev_flow = None
     ):  
         # Convert to gray
         first_frame_gray = cv2.cvtColor(first_frame, cv2.COLOR_BGR2GRAY)
         second_frame_gray = cv2.cvtColor(second_frame, cv2.COLOR_BGR2GRAY)
         
         # Get flow
-        if self.flow is None or True: # Oh god it SUCKS why doesn't it work never give it the flow for the love of god
+        if prev_flow is None: # Oh god it SUCKS why doesn't it work never give it the flow for the love of god
             flow_in = None
             flow_opts = 0
         else:
-            flow_in = self.flow
+            flow_in = prev_flow
             flow_opts = cv2.OPTFLOW_USE_INITIAL_FLOW
         flow = cv2.calcOpticalFlowFarneback(
             first_frame_gray,
@@ -304,12 +305,11 @@ class AppleMotionFlow:
             poly_sigma=self.flow_poly_sigma,
             flags=flow_opts
         )
-        self.flow = flow
         mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
         self.hsv[..., 0] = ang*180/np.pi/2
         self.hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
         flow_frame = cv2.cvtColor(self.hsv, cv2.COLOR_HSV2BGR)
-    
+        
         # Smooth colors with a blur
         smooth_frame = cv2.GaussianBlur(flow_frame, (self.blur_px,self.blur_px), 0)
         
