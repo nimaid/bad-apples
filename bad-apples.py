@@ -242,7 +242,7 @@ class AppleMotionFlow:
         flow_iterations=4, # Number of iterations per layer, more is better but slower
         flow_poly_n=7,
         flow_poly_sigma=1.5,
-        blur_amount=3.0, # Relative to video scale and flow window
+        blur_amount=2.0, # Relative to video scale and flow window
         fade_speed=4 # Relative to FPS
     ):
         self.ba = bad_apple
@@ -423,7 +423,7 @@ class AppleMotionFlowMulti:
         flow_iterations=4, # Number of iterations per layer, more is better but slower
         flow_poly_n=7,
         flow_poly_sigma=1.5,
-        blur_amount=3.0, # Relative to video scale and flow window
+        blur_amount=2.0, # Relative to video scale and flow window
         fade_speed=4 # Relative to FPS
     ):
         self.num_windows = flow_windows_count
@@ -545,7 +545,7 @@ downscale_method = cv2.INTER_LINEAR
 
 
 # Create the BadApple object
-ba = BadApple(BadApple.Quality.SD60)
+ba = BadApple(BadApple.Quality.HD60)
 
 # Create the AppleMotionFlowMulti object
 mfm = AppleMotionFlowMulti(
