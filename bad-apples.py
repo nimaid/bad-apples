@@ -600,7 +600,7 @@ class BadAppleResizeDummy:
 upscale_factor = 1 # 6 to go from 360p to 2160p
 upscale_method = cv2.INTER_NEAREST
 # How much to scale down the display by
-downscale_factor = 1 # 4 to go from 2160p to 720p
+downscale_factor = 3 # 3 to go from 2160p to 720p
 downscale_method = cv2.INTER_LINEAR
 
 
