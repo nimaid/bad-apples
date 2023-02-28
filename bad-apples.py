@@ -246,7 +246,7 @@ class AppleMotionFlow:
         fade_speed=4 # Relative to FPS
     ):
         self.ba = bad_apple
-        self.flow_window_size = flow_window * self.ba.img_scale
+        self.flow_window_size = round(flow_window * self.ba.img_scale)
         self.flow_layers = flow_layers
         self.flow_iterations = flow_iterations
         self.flow_poly_n = flow_poly_n
@@ -536,6 +536,66 @@ class AppleMotionFlowMulti:
         self.frame = layered_frame
         return self.frame
 
+# A class to act as a stand-in for a BadApple object, but scaled down
+class BadAppleResizeDummy:
+    def __init__(
+        self,
+        ba,
+        shrink_ratio=3 # 3 to go from 2160p to 720p
+    ):
+        self.ba = ba
+        self.shrink_ratio = shrink_ratio
+        
+        self.quality = self.ba.quality
+        
+        self.ext = self.ba.ext
+        
+        self.name = self.ba.name
+        self.url = self.ba.url
+        self.sha1 = self.ba.sha1
+        self.img_scale = self.ba.img_scale / self.shrink_ratio
+        self.fps_scale = self.ba.fps_scale
+        
+        self.filename = self.ba.filename
+        self.width = round(self.ba.width / self.shrink_ratio)
+        self.height = round(self.ba.height / self.shrink_ratio)
+        self.size = (self.width, self.height)
+        
+        self.fps = self.ba.fps
+        self.shape = (self.height, self.width, 3)
+        
+        
+        self.filename_full = self.ba.filename_full
+        
+        self.video = self.ba.video
+
+        self.total_frames = self.ba.total_frames
+        
+        self.frame = self.ba.frame
+        self.frame_num = self.ba.frame_num
+    
+    # Function to open the source video
+    def open(self):
+        result = ba.open()
+        self.video = self.ba.video
+        return result
+    
+    # Function to close the source video
+    def close(self):
+        self.ba.close()
+    
+    # Function to read next frame in parent and resize
+    def read_frame(self):
+        frame = self.ba.read_frame()
+        self.frame_num = self.ba.frame_num
+        if frame is None:
+            self.frame = None
+            return None
+        else:
+            self.frame = cv2.resize(frame, self.size, 0, 0, interpolation = cv2.INTER_LINEAR)
+            return self.frame
+
+
 # How much to scale outputs up by
 upscale_factor = 1 # 6 to go from 360p to 2160p
 upscale_method = cv2.INTER_NEAREST
@@ -544,8 +604,10 @@ downscale_factor = 1 # 4 to go from 2160p to 720p
 downscale_method = cv2.INTER_LINEAR
 
 
-# Create the BadApple object
-ba = BadApple(BadApple.Quality.HD60)
+# Create the 4k BadApple object
+ba_4k = BadApple(BadApple.Quality.UHD60)
+# Create 720p dummy
+ba = BadAppleResizeDummy(ba_4k, shrink_ratio=3)
 
 # Create the AppleMotionFlowMulti object
 mfm = AppleMotionFlowMulti(
