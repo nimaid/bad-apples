@@ -661,17 +661,18 @@ while True:
     print("Processing frame {}/{}".format(ba.frame_num, ba.total_frames))
     # Get 720p motion frame
     motion_frame = mfm.calc_motion_frame()
-    # Scale up to 4k
-    motion_frame_scaled = cv2.resize(motion_frame, ba_4k.size, 0, 0, interpolation = cv2.INTER_LINEAR)
-    # Layer them together
-    final_frame = mfm.mf[0].layer_over_image(motion_frame_scaled, ba_4k.frame)
     
     # This means it could not read the frame 
-    if final_frame is None:
+    if motion_frame is None:
          print("Could not read the frame, video is likely over.")   
          cv2.destroyWindow(windowName)
          ba.close()
          break
+    
+    # Scale up to 4k
+    motion_frame_scaled = cv2.resize(motion_frame, ba_4k.size, 0, 0, interpolation = cv2.INTER_LINEAR)
+    # Layer them together
+    final_frame = mfm.mf[0].layer_over_image(motion_frame_scaled, ba_4k.frame)
     
     # Display frame
     if downscale_factor != 1:
