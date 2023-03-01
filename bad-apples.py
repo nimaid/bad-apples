@@ -618,8 +618,8 @@ mfm = AppleMotionFlowMulti(
     ba,
     flow_layers=1,
     flow_iterations=3,
-    flow_windows_count=6,
-    flow_windows_min=7,
+    flow_windows_count=7,
+    flow_windows_min=5,
     flow_windows_max=35,
     flow_windows_balance=False
 )
