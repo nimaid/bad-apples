@@ -695,7 +695,9 @@ while True:
         time_string = ", ".join(time_strings)
         if seconds > 0:
             if len(time_strings) > 0:
-                time_string += ", and "
+                if len(time_strings) != 1:
+                    time_string += ","
+                time_string += " and "
             time_string += "{} second".format(seconds)
             if seconds > 1:
                 time_string += "s"
