@@ -663,41 +663,46 @@ mfm.set_next_src_frames(frame1)
 user_stopped = False
 while True:
     print("Processing frame {}/{}".format(ba.frame_num, ba.total_frames))
-    # Get 720p motion frame
-    motion_frame = mfm.calc_motion_frame()
-    
-    # This means it could not read the frame 
-    if motion_frame is None:
-         print("Could not read the frame, video is likely over.")   
-         cv2.destroyWindow(windowName)
-         ba.close()
-         break
-    
-    # Scale up to 4k
-    motion_frame_scaled = cv2.resize(motion_frame, ba_4k.size, 0, 0, interpolation = cv2.INTER_LINEAR)
-    # Layer them together
-    final_frame = mfm.mf[0].layer_over_image(motion_frame_scaled, ba_4k.frame)
-    
-    # Display frame
-    if downscale_factor != 1:
-        display_frame = cv2.resize(final_frame, display_size, 0, 0, interpolation = downscale_method)
-    else:
-        display_frame = final_frame
-    cv2.imshow(windowName, display_frame)
-    
-    # Scale frame for outputs
-    if upscale_factor != 1:
-        final_video_frame = cv2.resize(final_frame, video_size, 0, 0, interpolation = upscale_method)
-    else:
-        final_video_frame = final_frame
-    
-    # Save frame
-    new_video.write(final_video_frame)
-    
-    # Exit hotkey
-    stop_playing = False
-    waitKey = (cv2.waitKey(1) & 0xFF)
-    if waitKey == ord(quit_key): # If quit key pressed
+    try:
+        # Get 720p motion frame
+        motion_frame = mfm.calc_motion_frame()
+        
+        # This means it could not read the frame 
+        if motion_frame is None:
+             print("Could not read the frame, video is likely over.")   
+             cv2.destroyWindow(windowName)
+             ba.close()
+             break
+        
+        # Scale up to 4k
+        motion_frame_scaled = cv2.resize(motion_frame, ba_4k.size, 0, 0, interpolation = cv2.INTER_LINEAR)
+        # Layer them together
+        final_frame = mfm.mf[0].layer_over_image(motion_frame_scaled, ba_4k.frame)
+        
+        # Display frame
+        if downscale_factor != 1:
+            display_frame = cv2.resize(final_frame, display_size, 0, 0, interpolation = downscale_method)
+        else:
+            display_frame = final_frame
+        cv2.imshow(windowName, display_frame)
+        
+        # Scale frame for outputs
+        if upscale_factor != 1:
+            final_video_frame = cv2.resize(final_frame, video_size, 0, 0, interpolation = upscale_method)
+        else:
+            final_video_frame = final_frame
+        
+        # Save frame
+        new_video.write(final_video_frame)
+        
+        # Exit hotkey
+        stop_playing = False
+        waitKey = (cv2.waitKey(1) & 0xFF)
+        if waitKey == ord(quit_key): # If quit key pressed
+            print("User interrupted rendering process. ({})".format(quit_key.upper()))
+            stop_playing = True
+    except KeyboardInterrupt:
+        print("User interrupted rendering process. (CTRL + C)")
         stop_playing = True
     
     if stop_playing:
