@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 import blend_modes as bm
 import ffmpeg
+import datetime
 
 
 
@@ -662,8 +663,45 @@ mfm.set_next_src_frames(frame1)
 # Play the video
 user_stopped = False
 final_video_frame = None
+flow_start_time = datetime.datetime.now()
 while True:
-    print("Processing frame {}/{}".format(ba.frame_num, ba.total_frames))
+    print_string = "Processing frame {}/{}".format(ba.frame_num, ba.total_frames)
+    # Compute ETA if on second frame or higher
+    if ba.frame_num > 1:
+        curr_time = datetime.datetime.now()
+        time_taken = curr_time - flow_start_time
+        eta_diff = (time_taken * ba.total_frames) / ba.frame_num
+        eta = curr_time + eta_diff
+        
+        # Make ETA string
+        if eta.day != flow_start_time.day:
+            eta_string = eta.strftime("%B %#d, %Y @ %#I:%M:%S %p %Z").strip()
+        else:
+            eta_string = eta.strftime("%#I:%M:%S %p %Z").strip()
+        
+        # Make countdown string
+        seconds_taken = round(eta_diff.total_seconds())
+        hours, remainder = divmod(seconds_taken, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        time_strings = []
+        if hours > 0:
+            time_strings.append("{} hour".format(hours))
+            if hours > 1:
+                time_strings[-1] += "s"
+        if minutes > 0:
+            time_strings.append("{} minute".format(minutes))
+            if minutes > 1:
+                time_strings[-1] += "s"
+        time_string = ", ".join(time_strings)
+        if seconds > 0:
+            if len(time_strings) > 0:
+                time_string += ", and "
+            time_string += "{} second".format(seconds)
+            if seconds > 1:
+                time_string += "s"
+        print_string += ", Time remaining: {}, ETA: {}".format(time_string, eta_string)
+    print(print_string)
+    
     try:
         # Get 720p motion frame
         motion_frame = mfm.calc_motion_frame()
