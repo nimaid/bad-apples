@@ -714,9 +714,9 @@ if user_stopped:
 
 # Mux original audio and new video together (lossless)
 print("\nAdding audio...\n")
-video_original = ffmpeg.input(ba.filename)
-video_new = ffmpeg.input(temp_filename)
-video_muxed = ffmpeg.output(video_original.audio, video_new.video, new_filename)
+audio_original = ffmpeg.input(ba.filename).audio
+video_new = ffmpeg.input(temp_filename).video
+video_muxed = ffmpeg.output(audio_original, video_new, new_filename)
 ffmpeg_result = video_muxed.run()
 os.remove(temp_filename) # Delete the temp file
 print("\nAdded audio!")
