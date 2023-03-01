@@ -670,7 +670,7 @@ while True:
     if ba.frame_num > 1:
         curr_time = datetime.datetime.now()
         time_taken = curr_time - flow_start_time
-        eta_diff = (ba.total_frames - ba.frame_num) * time_taken / ba.frame_num # Shoutout to ChatGPT for fixing this
+        eta_diff = (ba.total_frames - (ba.frame_num-1)) * time_taken / (ba.frame_num-1) # Shoutout to ChatGPT for fixing this
         eta = curr_time + eta_diff
         
         # Make ETA string
