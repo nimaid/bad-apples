@@ -661,6 +661,7 @@ mfm.set_next_src_frames(frame1)
 
 # Play the video
 user_stopped = False
+final_video_frame = None
 while True:
     print("Processing frame {}/{}".format(ba.frame_num, ba.total_frames))
     try:
@@ -711,6 +712,23 @@ while True:
         cv2.destroyWindow(windowName)
         ba.close()
         break
+
+# Add fade frames and keep fading until it is fully black
+fade_frames = 0
+if not user_stopped:
+    print("\nAdding extra frames so that the video fades fully to black...")
+    while np.sum(final_video_frame, axis=None) != 0: # While the last frame isn't completely black
+        try:
+            print("Fade frame {}".format(fade_frames+1))
+            final_video_frame = mfm.mf[0].fade_img(final_video_frame) # Fade the image
+            new_video.write(final_video_frame) # Write the image
+            fade_frames += 1
+        except KeyboardInterrupt:
+            print("User interrupted fading process. (CTRL + C)")
+            user_stopped = True
+            break
+    if not user_stopped:
+        print("Video is now fully black!")
 
 # Save new video
 new_video.release()
