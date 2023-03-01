@@ -332,6 +332,10 @@ class AppleMotionFlow:
             self.prev_src_frame = prev_src_frame
         self.src_frame = src_frame
     
+    # Function to darken an image based on the fade amount
+    def fade_img(self, img):
+        return np.subtract(img, self.img_sub.astype(np.int16)).clip(0, 255).astype(np.uint8)
+    
     # Computes the next motion flow frame
     def calc_motion_frame(
         self,
@@ -362,7 +366,7 @@ class AppleMotionFlow:
                 layered_motion_frame = motion_frame
             else:
                 # Darken last motion frame
-                motion_frame_bg = np.subtract(self.motion_frame, self.img_sub.astype(np.int16)).clip(0, 255).astype(np.uint8)
+                motion_frame_bg = self.fade_img(self.motion_frame)
                 # Add over last motion frame by blending with lighten
                 layered_motion_frame = np.clip(np.maximum(motion_frame_bg, motion_frame), 0, 256).astype(np.uint8)
         else:
