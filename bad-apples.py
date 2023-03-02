@@ -674,7 +674,7 @@ while True:
         eta = curr_time + eta_diff
         
         # Make ETA string
-        if eta.day != flow_start_time.day:
+        if eta.day != curr_time.day:
             eta_string = eta.strftime("%B %#d @ %#I:%M:%S %p %Z").strip()
         else:
             eta_string = eta.strftime("%#I:%M:%S %p %Z").strip()
