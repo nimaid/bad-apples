@@ -334,8 +334,12 @@ class AppleMotionFlow:
         self.src_frame = src_frame
     
     # Function to darken an image based on the fade amount
-    def fade_img(self, img):
-        return np.subtract(img, self.img_sub.astype(np.int16)).clip(0, 255).astype(np.uint8)
+    def fade_img(self, img, make_new_fade=False):
+        if make_new_fade: # Don't use pre-computed array
+            img_sub = np.ones_like(img) * self.fade_amt
+        else:
+            img_sub = self.img_sub
+        return np.subtract(img, img_sub.astype(np.int16)).clip(0, 255).astype(np.uint8)
     
     # Computes the next motion flow frame
     def calc_motion_frame(
