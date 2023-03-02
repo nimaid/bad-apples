@@ -670,7 +670,7 @@ while True:
     if ba.frame_num > 1:
         curr_time = datetime.datetime.now()
         time_taken = curr_time - flow_start_time
-        eta_diff = (ba.total_frames - (ba.frame_num-1)) * time_taken / (ba.frame_num-1) # Shoutout to ChatGPT for fixing this
+        eta_diff = ((ba.total_frames-1) - (ba.frame_num-1)) * time_taken / (ba.frame_num-1) # Shoutout to ChatGPT for helping fix this
         eta = curr_time + eta_diff
         
         # Make ETA string
@@ -760,7 +760,7 @@ if not user_stopped:
     while np.sum(final_video_frame, axis=None) != 0: # While the last frame isn't completely black
         try:
             print("Fade frame {}".format(fade_frames+1))
-            final_video_frame = mfm.mf[0].fade_img(final_video_frame) # Fade the image
+            final_video_frame = mfm.mf[0].fade_img(final_video_frame, make_new_fade=True) # Fade the image
             new_video.write(final_video_frame) # Write the image
             fade_frames += 1
         except KeyboardInterrupt:
