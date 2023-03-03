@@ -702,15 +702,16 @@ while True:
             time_strings.append("{} second".format(seconds))
             if seconds != 1:
                 time_strings[-1] += "s"
-        time_string = ", ".join(time_strings)
-        if seconds > 0:
-            if len(time_strings) > 0:
-                if len(time_strings) != 1:
-                    time_string += ","
-                time_string += " and "
-            time_string += "{} second".format(seconds)
-            if seconds > 1:
-                time_string += "s"
+        
+        if len(time_strings) == 1:
+            time_string = time_strings[0]
+        elif len(time_strings) == 2:
+            time_string = "{} and {}".format(time_strings[0], time_strings[1])
+        else:
+            time_string = ", ".join(time_strings[:-1])
+            time_string += ", and {}".format(time_strings[-1])
+        
+        # Append string to print
         print_string += ", Time remaining: {}, ETA: {}".format(time_string, eta_string)
     print(print_string)
     
