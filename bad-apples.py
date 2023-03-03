@@ -606,22 +606,20 @@ class BadAppleResizeDummy:
 
 
 # How much to scale outputs up by
-upscale_factor = 1 # 6 to go from 360p to 2160p
+upscale_factor = 3 # 6 to go from 360p to 2160p
 upscale_method = cv2.INTER_NEAREST
 # How much to scale down the display by
-downscale_factor = 3 # 3 to go from 2160p to 720p
+downscale_factor = 1 # 3 to go from 2160p to 720p
 downscale_method = cv2.INTER_LINEAR
 
 
-# Create the 4k BadApple object
-ba_4k = BadApple(BadApple.Quality.UHD60)
-# Create 720p dummy
-ba = BadAppleResizeDummy(ba_4k, shrink_ratio=3)
+# Create the 720p BadApple object
+ba = BadApple(BadApple.Quality.HD60)
 
 # Create the AppleMotionFlowMulti object
 mfm = AppleMotionFlowMulti(
     ba,
-    flow_windows_balance=False
+    flow_windows_balance=False,
 )
 
 # Make output filenames
@@ -639,14 +637,14 @@ except:
     pass
 
 # Calculate video sizes
-video_size = (round(ba_4k.width*upscale_factor), round(ba_4k.height*upscale_factor))
-display_size = (round(ba_4k.width/downscale_factor), round(ba_4k.height/downscale_factor))
+video_size = (round(ba.width*upscale_factor), round(ba.height*upscale_factor))
+display_size = (round(ba.width/downscale_factor), round(ba.height/downscale_factor))
 
 # Start writing new file
 new_video = cv2.VideoWriter(
     filename=temp_filename,
     fourcc=cv2.VideoWriter_fourcc(*'mp4v'),
-    fps=ba_4k.fps,
+    fps=ba.fps,
     frameSize=video_size
 )
 
@@ -711,7 +709,7 @@ while True:
     print(print_string)
     
     try:
-        # Get 720p motion frame
+        # Get motion frame
         motion_frame = mfm.calc_motion_frame()
         
         # This means it could not read the frame 
@@ -721,10 +719,8 @@ while True:
              ba.close()
              break
         
-        # Scale up to 4k
-        motion_frame_scaled = cv2.resize(motion_frame, ba_4k.size, 0, 0, interpolation = cv2.INTER_LINEAR)
-        # Layer them together
-        final_frame = mfm.mf[0].layer_over_image(motion_frame_scaled, ba_4k.frame)
+        # No steps needed here
+        final_frame = motion_frame
         
         # Display frame
         if downscale_factor != 1:
