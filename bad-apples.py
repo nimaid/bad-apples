@@ -424,12 +424,12 @@ class AppleMotionFlowMulti:
     def __init__(
         self,
         bad_apple, # Existing BadApple object
-        flow_windows_count=3, # Number of flow calculations to do at different sizes
-        flow_windows_min=5, # Relative to video scale, higher gets bigger motions but is blurrier
-        flow_windows_max=25, # Relative to video scale, higher gets bigger motions but is blurrier
+        flow_windows_count=7, # Number of flow calculations to do at different sizes
+        flow_windows_min=7, # Relative to video scale, higher gets bigger motions but is blurrier
+        flow_windows_max=35, # Relative to video scale, higher gets bigger motions but is blurrier
         flow_windows_balance=True, # If we want to divide each motion layer brightness based on number of windows
-        flow_layers=4, # Number of layers in computation, more is better but slower
-        flow_iterations=4, # Number of iterations per layer, more is better but slower
+        flow_layers=1, # Number of layers in computation, more is better but slower
+        flow_iterations=3, # Number of iterations per layer, more is better but slower
         flow_poly_n=7,
         flow_poly_sigma=1.5,
         blur_amount=1.5, # Relative to video scale and flow window
@@ -621,11 +621,6 @@ ba = BadAppleResizeDummy(ba_4k, shrink_ratio=3)
 # Create the AppleMotionFlowMulti object
 mfm = AppleMotionFlowMulti(
     ba,
-    flow_layers=1,
-    flow_iterations=3,
-    flow_windows_count=7,
-    flow_windows_min=7,
-    flow_windows_max=35,
     flow_windows_balance=False
 )
 
