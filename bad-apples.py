@@ -620,6 +620,7 @@ ba = BadApple(BadApple.Quality.HD60)
 mfm = AppleMotionFlowMulti(
     ba,
     flow_windows_balance=False,
+    fade_speed=30
 )
 
 # Make output filenames
