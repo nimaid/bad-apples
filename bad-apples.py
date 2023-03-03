@@ -782,12 +782,13 @@ if user_stopped:
     exit()
 
 
-# Mux original audio and new video together (TODO: VERIFY COPY LOSSLESS??!!??!!)
+# Mux original audio and new video together (lossless, copy streams)
 print("\nAdding audio...\n")
 audio_original = ffmpeg.input(ba.filename).audio
 video_new = ffmpeg.input(temp_filename).video
-video_muxed = ffmpeg.output(audio_original, video_new, new_filename)
+video_muxed = ffmpeg.output(audio_original, video_new, new_filename, vcodec='copy', acodec='copy')
 ffmpeg_result = video_muxed.run()
-#os.remove(temp_filename) # Delete the temp file
+if os.path.exists(new_filename):
+    os.remove(temp_filename) # Delete the temp file
 print("\nAdded audio!")
 
