@@ -669,6 +669,7 @@ user_stopped = False
 final_video_frame = None
 flow_start_time = datetime.datetime.now()
 while True:
+    # Print frame and time estimation info
     print_string = "Processing frame {}/{}".format(ba.frame_num, ba.total_frames)
     # Compute ETA if on second frame or higher
     if ba.frame_num > 1:
@@ -687,14 +688,19 @@ while True:
         seconds_taken = round(eta_diff.total_seconds())
         hours, remainder = divmod(seconds_taken, 3600)
         minutes, seconds = divmod(remainder, 60)
+        
         time_strings = []
         if hours > 0:
             time_strings.append("{} hour".format(hours))
-            if hours > 1:
+            if hours != 1:
                 time_strings[-1] += "s"
         if minutes > 0:
             time_strings.append("{} minute".format(minutes))
-            if minutes > 1:
+            if minutes != 1:
+                time_strings[-1] += "s"
+        if len(time_strings) == 0 or seconds > 0:
+            time_strings.append("{} second".format(seconds))
+            if seconds != 1:
                 time_strings[-1] += "s"
         time_string = ", ".join(time_strings)
         if seconds > 0:
@@ -783,12 +789,12 @@ if user_stopped:
     exit()
 
 
-# Mux original audio and new video together (lossless)
+# Mux original audio and new video together (TODO: VERIFY COPY LOSSLESS??!!??!!)
 print("\nAdding audio...\n")
 audio_original = ffmpeg.input(ba.filename).audio
 video_new = ffmpeg.input(temp_filename).video
 video_muxed = ffmpeg.output(audio_original, video_new, new_filename)
 ffmpeg_result = video_muxed.run()
-os.remove(temp_filename) # Delete the temp file
+#os.remove(temp_filename) # Delete the temp file
 print("\nAdded audio!")
 
