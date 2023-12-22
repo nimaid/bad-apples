@@ -4,6 +4,7 @@ from enum import Enum
 import hashlib
 import cv2
 import numpy as np
+import datetime
 
 bad_apple_video = "bad_apple.mp4"
 
@@ -84,116 +85,199 @@ def ensure_bad_apple():
     print("Bad Apple is ready!\n")
 
 
-# Make sure we have the file before we go on
-ensure_bad_apple()
+def get_long_time_string(time_in):
+    seconds_in = round(time_in.total_seconds())
+    hours, remainder = divmod(seconds_in, 3600)
+    minutes, seconds = divmod(remainder, 60)
 
-# Make capture object for playback
-video = cv2.VideoCapture(bad_apple_video)
-# Check that the capture object is ready
-if video.isOpened():
-    print('Video successfully opened!\n')
-else:
-    print('Something went wrong!\n')
+    time_strings = []
+    if hours > 0:
+        time_strings.append(f"{hours} hour")
+        if hours != 1:
+            time_strings[-1] += "s"
+    if minutes > 0:
+        time_strings.append(f"{minutes} minute")
+        if minutes != 1:
+            time_strings[-1] += "s"
+    if len(time_strings) == 0 or seconds > 0:
+        time_strings.append(f"{seconds} second")
+        if seconds != 1:
+            time_strings[-1] += "s"
 
-# How much to scale outputs up by
-upscale_factor = 6  # From 360p to 4K
+    if len(time_strings) == 1:
+        time_string = time_strings[0]
+    elif len(time_strings) == 2:
+        time_string = "{} and {}".format(time_strings[0], time_strings[1])
+    else:
+        time_string = ", ".join(time_strings[:-1])
+        time_string += ", and {}".format(time_strings[-1])
 
-# Get video dimensions and FPS
-frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
-frame_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-size = (frame_width, frame_height)
-video_size = (int(frame_width) * upscale_factor, int(frame_height) * upscale_factor)
-fps = video.get(cv2.CAP_PROP_FPS)
-total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+    return time_string
 
-# Make output filename
-ba_name, ba_ext = os.path.splitext(bad_apple_video)
-new_filename = ba_name + "_edit" + ba_ext
 
-# Delete existing one
-try:
-    os.remove(new_filename)
-except:
-    pass
+def get_eta(start_time, total_items, current_item_index):
+    if current_item_index < 1:
+        raise ValueError("Unable to compute ETA for the first item (infinite time)")
 
-# Start writing new file
-new_video = cv2.VideoWriter(
-    filename=new_filename,
-    fourcc=cv2.VideoWriter.fourcc("m", "p", "4", "v"),
-    fps=fps,
-    frameSize=video_size
-)
+    if current_item_index > total_items:
+        raise IndexError("Item index is larger than the total items")
 
-# Make playback window
-windowName = 'Bad Apple (Press Q to Quit)'
-cv2.namedWindow(windowName)
-# Read the first frame
-ret, frame1 = video.read()
-prev_frame = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
-prev_final_frame = np.zeros_like(frame1)
-hsv = np.zeros_like(frame1)
-hsv[..., 1] = 255
-# Play the video
-frame_count = 1
-while True:
-    ret, frame2 = video.read()  # Read a single frame
-    if not ret:  # This mean it could not read the frame
-        print("Could not read the frame, video is likely over.")
-        cv2.destroyWindow(windowName)
-        video.release()
-        break
+    curr_time = datetime.datetime.now()
+    time_taken = curr_time - start_time
+    percent_done = current_item_index / (total_items - 1)
+    progress_scale = (1 - percent_done) / percent_done
+    eta_diff = time_taken * progress_scale
+    eta = curr_time + eta_diff
 
-    frame_count += 1
+    return {
+        "eta": eta,
+        "difference": eta_diff
+    }
 
-    print("Processing frame {}/{}".format(frame_count, total_frames))
 
-    next_frame = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
+def get_eta_string(start_time, total_items, current_item_index):
+    eta = get_eta(
+        start_time=start_time,
+        total_items=total_items,
+        current_item_index=current_item_index
+    )
 
-    # Get flow
-    flow = cv2.calcOpticalFlowFarneback(prev_frame, next_frame, None, 0.5, 1, 15, 1, 9, 3, 0)
-    mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
-    hsv[..., 0] = ang * 180 / np.pi / 2
-    hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
-    flow_frame = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-    prev_frame = next_frame
+    # Make ETA string
+    if eta["eta"].day != datetime.datetime.now().day:
+        eta_string = eta["eta"].strftime("%B %#d @ %#I:%M:%S %p %Z").strip()
+    else:
+        eta_string = eta["eta"].strftime("%#I:%M:%S %p %Z").strip()
 
-    # Smooth colors with a blur
-    smooth_frame = cv2.bilateralFilter(flow_frame, 11, 75, 75)
+    # Make countdown string
+    time_string = get_long_time_string(eta["difference"])
 
-    # Add over last final frame by blending with lighten
-    fade_amt = 0.2
-    img_black = np.zeros_like(prev_final_frame)
-    motion_frame_bg = cv2.addWeighted(prev_final_frame, 1 - fade_amt, img_black, fade_amt, 0.0)
-    motion_frame = np.clip(np.maximum(motion_frame_bg, smooth_frame), 0, 256).astype(np.uint8)
+    return f"Time remaining: {time_string}, ETA: {eta_string}"
 
-    # Screen over source for a trippy effect (this is the "broken" code)
-    next_frame_bgr = cv2.cvtColor(next_frame, cv2.COLOR_GRAY2BGR)
-    final_frame = np.clip(1 - np.multiply(1 - motion_frame, 1 - next_frame_bgr), 0, 256).astype(np.uint8)
-    # final_frame = motion_frame  # Use this line for "working as originally intended" code
 
-    # Display frame
-    cv2.imshow(windowName, final_frame)
+def main():
+    # Make sure we have the file before we go on
+    ensure_bad_apple()
 
-    # Scale frame for outputs
-    final_video_frame = cv2.resize(final_frame, video_size, 0, 0, interpolation=cv2.INTER_NEAREST)
+    # Make capture object for playback
+    video = cv2.VideoCapture(bad_apple_video)
+    # Check that the capture object is ready
+    if video.isOpened():
+        print('Video successfully opened!\n')
+    else:
+        print('Something went wrong!\n')
 
-    # Save frame
-    new_video.write(final_video_frame)
+    # How much to scale outputs up by
+    upscale_factor = 6  # From 360p to 4K
 
-    # Update last frame
-    prev_final_frame = final_frame
+    # Get video dimensions and FPS
+    frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    size = (frame_width, frame_height)
+    video_size = (int(frame_width) * upscale_factor, int(frame_height) * upscale_factor)
+    fps = video.get(cv2.CAP_PROP_FPS)
+    total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    # Exit hotkey
-    stop_playing = False
-    waitKey = (cv2.waitKey(1) & 0xFF)
-    if waitKey == ord('q'):  # If Q pressed
-        stop_playing = True
+    # Make output filename
+    ba_name, ba_ext = os.path.splitext(bad_apple_video)
+    new_filename = ba_name + "_edit" + ba_ext
 
-    if stop_playing:
-        print("Closing video and exiting...")
-        cv2.destroyWindow(windowName)
-        video.release()
-        break
+    # Delete existing one
+    try:
+        os.remove(new_filename)
+    except:
+        pass
 
-# Save new video
-new_video.release()
+    # Start writing new file
+    new_video = cv2.VideoWriter(
+        filename=new_filename,
+        fourcc=cv2.VideoWriter.fourcc("m", "p", "4", "v"),
+        fps=fps,
+        frameSize=video_size
+    )
+
+    # Make playback window
+    windowName = 'Bad Apple (Press Q to Quit)'
+    cv2.namedWindow(windowName)
+    # Read the first frame
+    ret, frame1 = video.read()
+    prev_frame = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
+    prev_final_frame = np.zeros_like(frame1)
+    hsv = np.zeros_like(frame1)
+    hsv[..., 1] = 255
+    # Play the video
+    start_time = datetime.datetime.now()
+    frame_count = 0
+    while True:
+        print_string = f"Processing frame {frame_count + 1}/{total_frames}"
+        if frame_count > 0:
+            eta_string = get_eta_string(start_time, total_frames, frame_count)
+            print_string += ", " + eta_string
+        print(print_string)
+
+        ret, frame2 = video.read()  # Read a single frame
+        if not ret:  # This mean it could not read the frame
+            print("Could not read the frame, video is likely over.")
+            cv2.destroyWindow(windowName)
+            video.release()
+            break
+
+        frame_count += 1
+
+        next_frame = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
+
+        # Get flow
+        flow = cv2.calcOpticalFlowFarneback(prev_frame, next_frame, None, 0.5, 1, 15, 1, 9, 3, 0)
+        mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
+        hsv[..., 0] = ang * 180 / np.pi / 2
+        hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
+        flow_frame = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+        prev_frame = next_frame
+
+        # Smooth colors with a blur
+        smooth_frame = cv2.bilateralFilter(flow_frame, 11, 75, 75)
+
+        # Add over last final frame by blending with lighten
+        fade_amt = 0.2
+        img_black = np.zeros_like(prev_final_frame)
+        motion_frame_bg = cv2.addWeighted(prev_final_frame, 1 - fade_amt, img_black, fade_amt, 0.0)
+        motion_frame = np.clip(np.maximum(motion_frame_bg, smooth_frame), 0, 256).astype(np.uint8)
+
+        # Screen over source for a trippy effect (this is the "broken" code)
+        next_frame_bgr = cv2.cvtColor(next_frame, cv2.COLOR_GRAY2BGR)
+        final_frame = np.clip(1 - np.multiply(1 - motion_frame, 1 - next_frame_bgr), 0, 256).astype(np.uint8)
+        # final_frame = motion_frame  # Use this line for "working as originally intended" code
+
+        # Display frame
+        cv2.imshow(windowName, final_frame)
+
+        # Scale frame for outputs
+        final_video_frame = cv2.resize(final_frame, video_size, 0, 0, interpolation=cv2.INTER_NEAREST)
+
+        # Save frame
+        new_video.write(final_video_frame)
+
+        # Update last frame
+        prev_final_frame = final_frame
+
+        # Exit hotkey
+        stop_playing = False
+        waitKey = (cv2.waitKey(1) & 0xFF)
+        if waitKey == ord('q'):  # If Q pressed
+            stop_playing = True
+
+        if stop_playing:
+            print("Closing video and exiting...")
+            cv2.destroyWindow(windowName)
+            video.release()
+            break
+
+    # Save new video
+    new_video.release()
+
+    time_diff = datetime.datetime.now() - start_time
+    time_string = get_long_time_string(time_diff)
+    print(f"Processed {frame_count}/{total_frames} frames in {time_string}!")
+
+
+if __name__ == "__main__":
+    main()
