@@ -163,13 +163,13 @@ while True:
     # Add over last final frame by blending with lighten
     fade_amt = 0.2
     img_black = np.zeros_like(prev_final_frame)
-    img_white = np.zeros_like(prev_final_frame) * 255.0
     motion_frame_bg = cv2.addWeighted(prev_final_frame, 1 - fade_amt, img_black, fade_amt, 0.0)
     motion_frame = np.clip(np.maximum(motion_frame_bg, smooth_frame), 0, 256).astype(np.uint8)
 
-    # Screen over source for a trippy effect
+    # Screen over source for a trippy effect (this is the "broken" code)
     next_frame_bgr = cv2.cvtColor(next_frame, cv2.COLOR_GRAY2BGR)
     final_frame = np.clip(1 - np.multiply(1 - motion_frame, 1 - next_frame_bgr), 0, 256).astype(np.uint8)
+    # final_frame = motion_frame  # Use this line for "working as originally intended" code
 
     # Display frame
     cv2.imshow(windowName, final_frame)
