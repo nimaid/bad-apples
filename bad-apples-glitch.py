@@ -141,7 +141,7 @@ def main():
     for i in eta_bar(range(total_frames), verbose=True, file=sys.stdout, width=20):
         ret, frame2 = video.read()  # Read a single frame
         if not ret:  # This mean it could not read the frame
-            print("Could not read the frame, video is likely over.")
+            print("\nCould not read the frame, video is likely over.")
             cv2.destroyWindow(windowName)
             video.release()
             break
@@ -191,7 +191,7 @@ def main():
             stop_playing = True
 
         if stop_playing:
-            print("Closing video and exiting...")
+            print("\nClosing video and exiting...")
             cv2.destroyWindow(windowName)
             video.release()
             break

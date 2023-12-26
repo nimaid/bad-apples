@@ -614,7 +614,7 @@ def main():
 
 
     # Create the 720p BadApple object
-    ba = BadApple(BadApple.Quality.SD)
+    ba = BadApple(BadApple.Quality.HD60)
 
     # Create the AppleMotionFlowMulti object
     mfm = AppleMotionFlowMulti(
@@ -668,7 +668,7 @@ def main():
 
             # This means it could not read the frame
             if motion_frame is None:
-                 print("Could not read the frame, video is likely over.")
+                 print("\nCould not read the frame, video is likely over.")
                  cv2.destroyWindow(windowName)
                  ba.close()
                  break
@@ -696,14 +696,14 @@ def main():
             stop_playing = False
             waitKey = (cv2.waitKey(1) & 0xFF)
             if waitKey == ord(quit_key): # If quit key pressed
-                print("User interrupted rendering process. ({})".format(quit_key.upper()))
+                print("\nUser interrupted rendering process. ({})".format(quit_key.upper()))
                 stop_playing = True
         except KeyboardInterrupt:
-            print("User interrupted rendering process. (CTRL + C)")
+            print("\nUser interrupted rendering process. (CTRL + C)")
             stop_playing = True
 
         if stop_playing:
-            print("Closing video and exiting...")
+            print("\nClosing video and exiting...")
             user_stopped = True
             cv2.destroyWindow(windowName)
             ba.close()
