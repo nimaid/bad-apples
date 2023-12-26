@@ -1,10 +1,11 @@
 import os
+import sys
 import urllib.request
 from enum import Enum
 import hashlib
 import cv2
 import numpy as np
-import datetime
+from etatime.eta import eta_bar
 
 bad_apple_video = "bad_apple.mp4"
 
@@ -84,76 +85,6 @@ def ensure_bad_apple():
         result = validate_bad_apple()
     print("Bad Apple is ready!\n")
 
-
-def get_long_time_string(time_in):
-    seconds_in = round(time_in.total_seconds())
-    hours, remainder = divmod(seconds_in, 3600)
-    minutes, seconds = divmod(remainder, 60)
-
-    time_strings = []
-    if hours > 0:
-        time_strings.append(f"{hours} hour")
-        if hours != 1:
-            time_strings[-1] += "s"
-    if minutes > 0:
-        time_strings.append(f"{minutes} minute")
-        if minutes != 1:
-            time_strings[-1] += "s"
-    if len(time_strings) == 0 or seconds > 0:
-        time_strings.append(f"{seconds} second")
-        if seconds != 1:
-            time_strings[-1] += "s"
-
-    if len(time_strings) == 1:
-        time_string = time_strings[0]
-    elif len(time_strings) == 2:
-        time_string = "{} and {}".format(time_strings[0], time_strings[1])
-    else:
-        time_string = ", ".join(time_strings[:-1])
-        time_string += ", and {}".format(time_strings[-1])
-
-    return time_string
-
-
-def get_eta(start_time, total_items, current_item_index):
-    if current_item_index < 1:
-        raise ValueError("Unable to compute ETA for the first item (infinite time)")
-
-    if current_item_index > total_items:
-        raise IndexError("Item index is larger than the total items")
-
-    curr_time = datetime.datetime.now()
-    time_taken = curr_time - start_time
-    percent_done = current_item_index / (total_items - 1)
-    progress_scale = (1 - percent_done) / percent_done
-    eta_diff = time_taken * progress_scale
-    eta = curr_time + eta_diff
-
-    return {
-        "eta": eta,
-        "difference": eta_diff
-    }
-
-
-def get_eta_string(start_time, total_items, current_item_index):
-    eta = get_eta(
-        start_time=start_time,
-        total_items=total_items,
-        current_item_index=current_item_index
-    )
-
-    # Make ETA string
-    if eta["eta"].day != datetime.datetime.now().day:
-        eta_string = eta["eta"].strftime("%B %#d @ %#I:%M:%S %p %Z").strip()
-    else:
-        eta_string = eta["eta"].strftime("%#I:%M:%S %p %Z").strip()
-
-    # Make countdown string
-    time_string = get_long_time_string(eta["difference"])
-
-    return f"Time remaining: {time_string}, ETA: {eta_string}"
-
-
 def main():
     # Make sure we have the file before we go on
     ensure_bad_apple()
@@ -204,16 +135,10 @@ def main():
     prev_final_frame = np.zeros_like(frame1)
     hsv = np.zeros_like(frame1)
     hsv[..., 1] = 255
-    # Play the video
-    start_time = datetime.datetime.now()
-    frame_count = 0
-    while True:
-        print_string = f"Processing frame {frame_count + 1}/{total_frames}"
-        if frame_count > 0:
-            eta_string = get_eta_string(start_time, total_frames, frame_count)
-            print_string += ", " + eta_string
-        print(print_string)
 
+    # Play the video
+    frame_count = 0
+    for i in eta_bar(range(total_frames), verbose=True, file=sys.stdout, width=20):
         ret, frame2 = video.read()  # Read a single frame
         if not ret:  # This mean it could not read the frame
             print("Could not read the frame, video is likely over.")
@@ -273,10 +198,6 @@ def main():
 
     # Save new video
     new_video.release()
-
-    time_diff = datetime.datetime.now() - start_time
-    time_string = get_long_time_string(time_diff)
-    print(f"Processed {frame_count}/{total_frames} frames in {time_string}!")
 
 
 if __name__ == "__main__":

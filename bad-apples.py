@@ -1,4 +1,5 @@
 import os
+import sys
 import urllib.request
 from enum import Enum
 import hashlib
@@ -6,8 +7,7 @@ import cv2
 import numpy as np
 import blend_modes as bm
 import ffmpeg
-import datetime
-
+from etatime.eta import eta_bar
 
 
 # A class to represent the Bad Apple video
@@ -256,13 +256,13 @@ class AppleMotionFlow:
         # Make sure it's odd
         if self.blur_px%2 == 0:
             self.blur_px += 1
-        self.fade_amt = max(round(fade_speed / ba.fps_scale), 1)
+        self.fade_amt = max(round(fade_speed / self.ba.fps_scale), 1)
         
         # Make image to fade with
-        self.img_sub = np.ones(ba.shape) * self.fade_amt
+        self.img_sub = np.ones(self.ba.shape) * self.fade_amt
         
         # Make HSV array
-        self.hsv = np.zeros(ba.shape).astype(np.uint8)
+        self.hsv = np.zeros(self.ba.shape).astype(np.uint8)
         self.hsv[..., 1] = 255 # Full saturation
         
         # Init frames
@@ -585,7 +585,7 @@ class BadAppleResizeDummy:
     
     # Function to open the source video
     def open(self):
-        result = ba.open()
+        result = self.ba.open()
         self.video = self.ba.video
         return result
     
@@ -604,191 +604,146 @@ class BadAppleResizeDummy:
             self.frame = cv2.resize(frame, self.size, 0, 0, interpolation = cv2.INTER_LINEAR)
             return self.frame
 
+def main():
+    # How much to scale outputs up by
+    upscale_factor = 3 # 6 to go from 360p to 2160p
+    upscale_method = cv2.INTER_CUBIC
+    # How much to scale down the display by
+    downscale_factor = 1 # 3 to go from 2160p to 720p
+    downscale_method = cv2.INTER_LINEAR
 
-# How much to scale outputs up by
-upscale_factor = 3 # 6 to go from 360p to 2160p
-upscale_method = cv2.INTER_CUBIC
-# How much to scale down the display by
-downscale_factor = 1 # 3 to go from 2160p to 720p
-downscale_method = cv2.INTER_LINEAR
 
+    # Create the 720p BadApple object
+    ba = BadApple(BadApple.Quality.SD)
 
-# Create the 720p BadApple object
-ba = BadApple(BadApple.Quality.HD60)
+    # Create the AppleMotionFlowMulti object
+    mfm = AppleMotionFlowMulti(
+        ba,
+        flow_windows_balance=False,
+        fade_speed=30
+    )
 
-# Create the AppleMotionFlowMulti object
-mfm = AppleMotionFlowMulti(
-    ba,
-    flow_windows_balance=False,
-    fade_speed=30
-)
+    # Make output filenames
+    temp_filename = ba.name + "_temp" + ba.ext
+    new_filename = ba.name + "_edit" + ba.ext
 
-# Make output filenames
-temp_filename = ba.name + "_temp" + ba.ext
-new_filename = ba.name + "_edit" + ba.ext
-
-# Delete existing outputs
-try:
-    os.remove(temp_filename)
-except:
-    pass
-try:
-    os.remove(new_filename)
-except:
-    pass
-
-# Calculate video sizes
-video_size = (round(ba.width*upscale_factor), round(ba.height*upscale_factor))
-display_size = (round(ba.width/downscale_factor), round(ba.height/downscale_factor))
-
-# Start writing new file
-new_video = cv2.VideoWriter(
-    filename=temp_filename,
-    fourcc=cv2.VideoWriter_fourcc(*'mp4v'),
-    fps=ba.fps,
-    frameSize=video_size
-)
-
-# Make playback window
-quit_key = "q"
-windowName = "Bad Apple (press {} to quit)".format(quit_key.upper())
-cv2.namedWindow(windowName)
-
-# Get first frame of the bad apple video
-frame1 = ba.read_frame()
-mfm.set_next_src_frames(frame1)
-
-# Play the video
-user_stopped = False
-final_video_frame = None
-flow_start_time = datetime.datetime.now()
-while True:
-    # Print frame and time estimation info
-    print_string = "Processing frame {}/{}".format(ba.frame_num, ba.total_frames)
-    # Compute ETA if on second frame or higher
-    if ba.frame_num > 1:
-        curr_time = datetime.datetime.now()
-        time_taken = curr_time - flow_start_time
-        eta_diff = (ba.total_frames - (ba.frame_num-1)) * time_taken / (ba.frame_num-1) # Shoutout to ChatGPT for helping fix this
-        eta = curr_time + eta_diff
-        
-        # Make ETA string
-        if eta.day != curr_time.day:
-            eta_string = eta.strftime("%B %#d @ %#I:%M:%S %p %Z").strip()
-        else:
-            eta_string = eta.strftime("%#I:%M:%S %p %Z").strip()
-        
-        # Make countdown string
-        seconds_taken = round(eta_diff.total_seconds())
-        hours, remainder = divmod(seconds_taken, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        
-        time_strings = []
-        if hours > 0:
-            time_strings.append("{} hour".format(hours))
-            if hours != 1:
-                time_strings[-1] += "s"
-        if minutes > 0:
-            time_strings.append("{} minute".format(minutes))
-            if minutes != 1:
-                time_strings[-1] += "s"
-        if len(time_strings) == 0 or seconds > 0:
-            time_strings.append("{} second".format(seconds))
-            if seconds != 1:
-                time_strings[-1] += "s"
-        
-        if len(time_strings) == 1:
-            time_string = time_strings[0]
-        elif len(time_strings) == 2:
-            time_string = "{} and {}".format(time_strings[0], time_strings[1])
-        else:
-            time_string = ", ".join(time_strings[:-1])
-            time_string += ", and {}".format(time_strings[-1])
-        
-        # Append string to print
-        print_string += ", Time remaining: {}, ETA: {}".format(time_string, eta_string)
-    print(print_string)
-    
+    # Delete existing outputs
     try:
-        # Get motion frame
-        motion_frame = mfm.calc_motion_frame()
-        
-        # This means it could not read the frame 
-        if motion_frame is None:
-             print("Could not read the frame, video is likely over.")   
-             cv2.destroyWindow(windowName)
-             ba.close()
-             break
-        
-        # No steps needed here
-        final_frame = motion_frame
-        
-        # Display frame
-        if downscale_factor != 1:
-            display_frame = cv2.resize(final_frame, display_size, 0, 0, interpolation = downscale_method)
-        else:
-            display_frame = final_frame
-        cv2.imshow(windowName, display_frame)
-        
-        # Scale frame for outputs
-        if upscale_factor != 1:
-            final_video_frame = cv2.resize(final_frame, video_size, 0, 0, interpolation = upscale_method)
-        else:
-            final_video_frame = final_frame
-        
-        # Save frame
-        new_video.write(final_video_frame)
-        
-        # Exit hotkey
-        stop_playing = False
-        waitKey = (cv2.waitKey(1) & 0xFF)
-        if waitKey == ord(quit_key): # If quit key pressed
-            print("User interrupted rendering process. ({})".format(quit_key.upper()))
-            stop_playing = True
-    except KeyboardInterrupt:
-        print("User interrupted rendering process. (CTRL + C)")
-        stop_playing = True
-    
-    if stop_playing:
-        print("Closing video and exiting...")
-        user_stopped = True
-        cv2.destroyWindow(windowName)
-        ba.close()
-        break
+        os.remove(temp_filename)
+    except:
+        pass
+    try:
+        os.remove(new_filename)
+    except:
+        pass
 
-# Add fade frames and keep fading until it is fully black
-fade_frames = 0
-if not user_stopped:
-    print("\nAdding extra frames so that the video fades fully to black...")
-    while np.sum(final_video_frame, axis=None) != 0: # While the last frame isn't completely black
+    # Calculate video sizes
+    video_size = (round(ba.width*upscale_factor), round(ba.height*upscale_factor))
+    display_size = (round(ba.width/downscale_factor), round(ba.height/downscale_factor))
+
+    # Start writing new file
+    new_video = cv2.VideoWriter(
+        filename=temp_filename,
+        fourcc=cv2.VideoWriter_fourcc(*'mp4v'),
+        fps=ba.fps,
+        frameSize=video_size
+    )
+
+    # Make playback window
+    quit_key = "q"
+    windowName = "Bad Apple (press {} to quit)".format(quit_key.upper())
+    cv2.namedWindow(windowName)
+
+    # Get first frame of the bad apple video
+    frame1 = ba.read_frame()
+    mfm.set_next_src_frames(frame1)
+
+    # Play the video
+    user_stopped = False
+    final_video_frame = None
+    for i in eta_bar(range(ba.total_frames), verbose=True, file=sys.stdout, width=20):
         try:
-            print("Fade frame {}".format(fade_frames+1))
-            final_video_frame = mfm.mf[0].fade_img(final_video_frame, make_new_fade=True) # Fade the image
-            new_video.write(final_video_frame) # Write the image
-            fade_frames += 1
+            # Get motion frame
+            motion_frame = mfm.calc_motion_frame()
+
+            # This means it could not read the frame
+            if motion_frame is None:
+                 print("Could not read the frame, video is likely over.")
+                 cv2.destroyWindow(windowName)
+                 ba.close()
+                 break
+
+            # No steps needed here
+            final_frame = motion_frame
+
+            # Display frame
+            if downscale_factor != 1:
+                display_frame = cv2.resize(final_frame, display_size, 0, 0, interpolation = downscale_method)
+            else:
+                display_frame = final_frame
+            cv2.imshow(windowName, display_frame)
+
+            # Scale frame for outputs
+            if upscale_factor != 1:
+                final_video_frame = cv2.resize(final_frame, video_size, 0, 0, interpolation = upscale_method)
+            else:
+                final_video_frame = final_frame
+
+            # Save frame
+            new_video.write(final_video_frame)
+
+            # Exit hotkey
+            stop_playing = False
+            waitKey = (cv2.waitKey(1) & 0xFF)
+            if waitKey == ord(quit_key): # If quit key pressed
+                print("User interrupted rendering process. ({})".format(quit_key.upper()))
+                stop_playing = True
         except KeyboardInterrupt:
-            print("User interrupted fading process. (CTRL + C)")
+            print("User interrupted rendering process. (CTRL + C)")
+            stop_playing = True
+
+        if stop_playing:
+            print("Closing video and exiting...")
             user_stopped = True
+            cv2.destroyWindow(windowName)
+            ba.close()
             break
+
+    # Add fade frames and keep fading until it is fully black
+    fade_frames = 0
     if not user_stopped:
-        print("Video is now fully black!")
+        print("\nAdding extra frames so that the video fades fully to black...")
+        while np.sum(final_video_frame, axis=None) != 0: # While the last frame isn't completely black
+            try:
+                print("Fade frame {}".format(fade_frames+1))
+                final_video_frame = mfm.mf[0].fade_img(final_video_frame, make_new_fade=True) # Fade the image
+                new_video.write(final_video_frame) # Write the image
+                fade_frames += 1
+            except KeyboardInterrupt:
+                print("User interrupted fading process. (CTRL + C)")
+                user_stopped = True
+                break
+        if not user_stopped:
+            print("Video is now fully black!")
 
-# Save new video
-new_video.release()
+    # Save new video
+    new_video.release()
 
 
-# If user quit, stop here
-if user_stopped:
-    exit()
+    # If user quit, stop here
+    if user_stopped:
+        exit()
 
 
-# Mux original audio and new video together (lossless, copy streams)
-print("\nAdding audio...\n")
-audio_original = ffmpeg.input(ba.filename).audio
-video_new = ffmpeg.input(temp_filename).video
-video_muxed = ffmpeg.output(audio_original, video_new, new_filename, vcodec='copy', acodec='copy')
-ffmpeg_result = video_muxed.run()
-if os.path.exists(new_filename):
-    os.remove(temp_filename) # Delete the temp file
-print("\nAdded audio!")
+    # Mux original audio and new video together (lossless, copy streams)
+    print("\nAdding audio...\n")
+    audio_original = ffmpeg.input(ba.filename).audio
+    video_new = ffmpeg.input(temp_filename).video
+    video_muxed = ffmpeg.output(audio_original, video_new, new_filename, vcodec='copy', acodec='copy')
+    ffmpeg_result = video_muxed.run()
+    if os.path.exists(new_filename):
+        os.remove(temp_filename) # Delete the temp file
+    print("\nAdded audio!")
 
+if __name__ == "__main__":
+    main()
