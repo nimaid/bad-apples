@@ -652,8 +652,8 @@ def run(
         quality=BadApple.Quality.SD,
         upscale_factor=6,
         downscale_factor=1,
-        upscale_method = cv2.INTER_NEAREST,
-        downscale_method = cv2.INTER_CUBIC,
+        upscale_method=cv2.INTER_NEAREST,
+        downscale_method=cv2.INTER_CUBIC,
         fade_speed=30
 ):
     # Create the 720p BadApple object
@@ -663,7 +663,7 @@ def run(
     mfm = AppleMotionFlowMulti(
         ba,
         flow_windows_balance=False,
-        fade_speed=downscale_method
+        fade_speed=fade_speed
     )
 
     # Make output filenames
