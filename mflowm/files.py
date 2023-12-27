@@ -29,7 +29,7 @@ class VideoFile:
 
         # Initialize attributes
         self.frame = None
-        self.frame_num = -1
+        self.frame_num = 0
 
     def __del__(self):
         self.close()

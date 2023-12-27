@@ -123,6 +123,14 @@ class MotionFlowMulti:
             self.prev_src_frame = prev_src_frame
         self.src_frame = src_frame
 
+    # Function to darken an image based on the fade amount
+    def fade_img(self, img, make_new_fade=False):
+        if make_new_fade:  # Don't use pre-computed array
+            img_sub = np.ones_like(img) * self.fade_amt
+        else:
+            img_sub = self.img_sub
+        return np.subtract(img, img_sub.astype(np.int16)).clip(0, 255).astype(np.uint8)
+
     def get_flow(
             self,
             first_frame,
@@ -161,7 +169,7 @@ class MotionFlowMulti:
         flow_frame = cv2.cvtColor(self.hsv, cv2.COLOR_HSV2BGR)
 
         # Smooth colors with a blur
-        smooth_frame = cv2.GaussianBlur(flow_frame, (self.blur_px, self.blur_px), 0)
+        smooth_frame = cv2.GaussianBlur(flow_frame, (self.blur_px(window_size), self.blur_px(window_size)), 0)
 
         return smooth_frame
 
@@ -202,10 +210,7 @@ class MotionFlowMulti:
                     img_black = np.zeros_like(old_frame)
                     motion_frame_bg = cv2.addWeighted(old_frame, 1 - fade_amt, img_black, fade_amt, 0.0)
                 else:
-                    motion_frame_bg = np.subtract(
-                        old_frame,
-                        self.img_sub.astype(np.int16)
-                    ).clip(0, 255).astype(np.uint8)
+                    motion_frame_bg = self.fade_img(old_frame)
             else:
                 motion_frame_bg = old_frame
             # Add over last motion frame by blending with lighten

@@ -9,6 +9,8 @@ import blend_modes as bm
 import ffmpeg
 from etatime import EtaBar
 
+from mflowm import MotionFlowMulti, layer_over_image
+
 # !!!! WARNING: VISUAL HAZARD AHEAD!!! BAD CODE!!! AVERT YOUR EYES!!!
 
 
@@ -255,6 +257,7 @@ class AppleMotionFlow:
         self.flow_poly_n = flow_poly_n
         self.flow_poly_sigma = flow_poly_sigma
         self.blur_px = max(round(blur_amount * self.flow_window_size), 1)
+        print(self.blur_px)
         # Make sure it's odd
         if self.blur_px % 2 == 0:
             self.blur_px += 1
@@ -647,6 +650,7 @@ class LayerMode(Enum):
     VERY_BROKEN = 3
     NONE = 4
 
+
 def run(
         layer_mode,
         quality=BadApple.Quality.SD,
@@ -660,9 +664,9 @@ def run(
     ba = BadApple(quality)
 
     # Create the AppleMotionFlowMulti object
-    mfm = AppleMotionFlowMulti(
+    mfm = MotionFlowMulti(
         ba,
-        flow_windows_balance=False,
+        windows_balance=False,
         fade_speed=fade_speed
     )
 
@@ -725,7 +729,7 @@ def run(
             # Layer the motion over the source
             match layer_mode:
                 case LayerMode.GLITCH:
-                    layered_frame = mfm.mf[0].layer_over_image(motion_frame, mfm.ba.frame)
+                    layered_frame = layer_over_image(mfm.video_file.frame, motion_frame)
                     # Glitchy clipping effect
                     final_frame = np.clip(
                         1 - np.multiply(1 - layered_frame, 1 - motion_frame),
@@ -733,17 +737,17 @@ def run(
                         256).astype(np.uint8)
                 case LayerMode.SIMPLE:
                     # Layered over source
-                    final_frame = mfm.mf[0].layer_over_image(motion_frame, mfm.ba.frame)
+                    final_frame = layer_over_image(mfm.video_file.frame, motion_frame)
                 case LayerMode.BROKEN:
                     final_frame = np.clip(
-                        1 - np.multiply(1 - motion_frame, 1 - mfm.ba.frame),
+                        1 - np.multiply(1 - motion_frame, 1 - mfm.video_file.frame),
                         0,
                         256).astype(np.uint8)
 
                     previous_frame = final_frame
                 case LayerMode.VERY_BROKEN:
                     final_frame = np.clip(
-                        1 - np.multiply(1 - motion_frame, 1 - mfm.ba.frame),
+                        1 - np.multiply(1 - motion_frame, 1 - mfm.video_file.frame),
                         0,
                         256).astype(np.uint8)
 
@@ -791,7 +795,7 @@ def run(
         while np.sum(final_video_frame, axis=None) != 0:  # While the last frame isn't completely black
             try:
                 print("Fade frame {}".format(fade_frames + 1))
-                final_video_frame = mfm.mf[0].fade_img(final_video_frame, make_new_fade=True)  # Fade the image
+                final_video_frame = mfm.fade_img(final_video_frame, make_new_fade=True)  # Fade the image
                 new_video.write(final_video_frame)  # Write the image
                 fade_frames += 1
             except KeyboardInterrupt:
@@ -821,9 +825,9 @@ def run(
 
 def main():
     #run(LayerMode.GLITCH)
-    #run(LayerMode.SIMPLE)
+    run(LayerMode.SIMPLE)
     #run(LayerMode.BROKEN, quality=BadApple.Quality.FHD60)
-    run(LayerMode.VERY_BROKEN)
+    #run(LayerMode.VERY_BROKEN)
     #run(LayerMode.NONE)
 
 
