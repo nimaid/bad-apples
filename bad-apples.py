@@ -506,7 +506,7 @@ class AppleMotionFlowMulti:
         return final_frame
 
     # Computes the next motion flow frame
-    def calc_motion_frame(self, old_frame=None, broken_blending=False):
+    def calc_motion_frame(self, old_frame=None, broken_blending=False, do_fade=True):
         result = self.get_next_src_frame()
         # If we haven't gotten the second frame yet, get it
         if self.prev_src_frame is None:
@@ -525,14 +525,16 @@ class AppleMotionFlowMulti:
             if self.flow_windows_balance:
                 motion_flow_frame = np.around(motion_flow_frame / self.num_windows).astype(np.uint8)
             # Layer over previous motion flow frames
-            motion_frame = self.layer_motion_frames(motion_flow_frame, motion_frame, broken_blending=broken_blending)
+            motion_frame = self.layer_motion_frames(motion_flow_frame, motion_frame)
 
         # layer over old motion frame if it exists
         if old_frame is not None:
             # Darken last motion frame
-            if not broken_blending:
-                motion_frame_bg = np.subtract(old_frame, self.mf[0].img_sub.astype(np.int16)).clip(0, 255).astype(
-                np.uint8)
+            if do_fade:
+                motion_frame_bg = np.subtract(
+                    old_frame,
+                    self.mf[0].img_sub.astype(np.int16)
+                ).clip(0, 255).astype(np.uint8)
             else:
                 motion_frame_bg = old_frame
             # Add over last motion frame by blending with lighten
@@ -541,7 +543,7 @@ class AppleMotionFlowMulti:
             layered_motion_frame = motion_frame
         else:
             # Darken last motion frame
-            if not broken_blending:
+            if do_fade:
                 motion_frame_bg = np.subtract(self.motion_frame, self.mf[0].img_sub.astype(np.int16)).clip(0, 255).astype(
                 np.uint8)
             else:
@@ -628,14 +630,15 @@ class LayerMode(Enum):
     GLITCH = 0
     SIMPLE = 1
     BROKEN = 2
-    NONE = 3
+    VERY_BROKEN = 3
+    NONE = 4
 
 def main():
     # The type of layering to do
     layer_mode = LayerMode.BROKEN
     
     # How much to scale outputs up by
-    upscale_factor = 3  # 6 to go from 360p to 2160p
+    upscale_factor = 6  # 6 to go from 360p to 2160p
     upscale_method = cv2.INTER_CUBIC
     # How much to scale down the display by
     downscale_factor = 1  # 3 to go from 2160p to 720p
@@ -694,6 +697,8 @@ def main():
         try:
             # Get motion frame
             if layer_mode == LayerMode.BROKEN:
+                motion_frame = mfm.calc_motion_frame(old_frame=previous_frame, broken_blending=True, do_fade=False)
+            elif layer_mode == LayerMode.VERY_BROKEN:
                 motion_frame = mfm.calc_motion_frame(old_frame=previous_frame, broken_blending=True)
             else:
                 motion_frame = mfm.calc_motion_frame()
@@ -727,6 +732,11 @@ def main():
                     #final_frame = mfm.mf[0].layer_over_image(this_motion_frame, mfm.ba.frame)
 
                     previous_frame = final_frame
+                case LayerMode.VERY_BROKEN:
+                    final_frame = np.clip(
+                        1 - np.multiply(1 - motion_frame, 1 - mfm.ba.frame),
+                        0,
+                        256).astype(np.uint8)
                 case _:
                     final_frame = motion_frame  # No layering (only motion)
 
