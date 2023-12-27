@@ -503,7 +503,7 @@ class AppleMotionFlowMulti:
         return final_frame
 
     # Computes the next motion flow frame
-    def calc_motion_frame(self):
+    def calc_motion_frame(self, old_frame=None):
         result = self.get_next_src_frame()
         # If we haven't gotten the second frame yet, get it
         if self.prev_src_frame is None:
@@ -525,7 +525,13 @@ class AppleMotionFlowMulti:
             motion_frame = self.layer_motion_frames(motion_flow_frame, motion_frame)
 
         # layer over old motion frame if it exists
-        if self.prev_motion_frame is None:  # We don't have both, just set the motion current frame be the first frame
+        if old_frame is not None:
+            # Darken last motion frame
+            motion_frame_bg = np.subtract(old_frame, self.mf[0].img_sub.astype(np.int16)).clip(0, 255).astype(
+                np.uint8)
+            # Add over last motion frame by blending with lighten
+            layered_motion_frame = np.clip(np.maximum(motion_frame_bg, motion_frame), 0, 256).astype(np.uint8)
+        elif self.prev_motion_frame is None:  # We don't have both, just set the motion current frame be the first frame
             layered_motion_frame = motion_frame
         else:
             # Darken last motion frame
@@ -609,14 +615,15 @@ class BadAppleResizeDummy:
             return self.frame
 
 
-class LayerCode(Enum):
+class LayerMode(Enum):
     GLITCH = 0
     SIMPLE = 1
-    NONE = 2
+    BROKEN = 2
+    NONE = 3
 
 def main():
     # The type of layering to do
-    layer_mode = LayerCode.GLITCH
+    layer_mode = LayerMode.BROKEN
     
     # How much to scale outputs up by
     upscale_factor = 3  # 6 to go from 360p to 2160p
@@ -673,10 +680,11 @@ def main():
     # Play the video
     user_stopped = False
     final_video_frame = None
+    previous_frame = None
     for i in EtaBar(range(ba.total_frames), bar_format="{l_bar}{bar}{r_barL}", file=sys.stdout):
         try:
             # Get motion frame
-            motion_frame = mfm.calc_motion_frame()
+            motion_frame = mfm.calc_motion_frame(old_frame=previous_frame)
 
             # This means it could not read the frame
             if motion_frame is None:
@@ -686,18 +694,28 @@ def main():
                 break
 
             # Layer the motion over the source
-            if layer_mode in [LayerCode.GLITCH, LayerCode.SIMPLE]:
-                layered_frame = mfm.mf[0].layer_over_image(motion_frame, mfm.ba.frame)
             match layer_mode:
-                case LayerCode.GLITCH:
+                case LayerMode.GLITCH:
+                    layered_frame = mfm.mf[0].layer_over_image(motion_frame, mfm.ba.frame)
                     # Glitchy clipping effect
                     final_frame = np.clip(
                         1 - np.multiply(1 - layered_frame, 1 - motion_frame),
                         0,
                         256).astype(np.uint8)
-                case LayerCode.SIMPLE:
-                    final_frame = layered_frame  # Layered over source
-                case _ :
+                case LayerMode.SIMPLE:
+                    # Layered over source
+                    final_frame = mfm.mf[0].layer_over_image(motion_frame, mfm.ba.frame)
+                case LayerMode.BROKEN:
+                    # TODO: Also use previous_frame for mfm previous motion frame, not internal
+                    final_frame = np.clip(
+                        1 - np.multiply(1 - motion_frame, 1 - mfm.ba.frame),
+                        0,
+                        256).astype(np.uint8)
+
+                    #final_frame = mfm.mf[0].layer_over_image(this_motion_frame, mfm.ba.frame)
+
+                    previous_frame = final_frame
+                case _:
                     final_frame = motion_frame  # No layering (only motion)
 
             # Display frame
