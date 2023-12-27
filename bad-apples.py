@@ -506,7 +506,7 @@ class AppleMotionFlowMulti:
         return final_frame
 
     # Computes the next motion flow frame
-    def calc_motion_frame(self, old_frame=None, broken_blending=False, do_fade=True):
+    def calc_motion_frame(self, old_frame=None, bad_fade=False, do_fade=True):
         result = self.get_next_src_frame()
         # If we haven't gotten the second frame yet, get it
         if self.prev_src_frame is None:
@@ -531,10 +531,15 @@ class AppleMotionFlowMulti:
         if old_frame is not None:
             # Darken last motion frame
             if do_fade:
-                motion_frame_bg = np.subtract(
-                    old_frame,
-                    self.mf[0].img_sub.astype(np.int16)
-                ).clip(0, 255).astype(np.uint8)
+                if bad_fade:
+                    fade_amt = 0.2
+                    img_black = np.zeros_like(old_frame)
+                    motion_frame_bg = cv2.addWeighted(old_frame, 1 - fade_amt, img_black, fade_amt, 0.0)
+                else:
+                    motion_frame_bg = np.subtract(
+                        old_frame,
+                        self.mf[0].img_sub.astype(np.int16)
+                    ).clip(0, 255).astype(np.uint8)
             else:
                 motion_frame_bg = old_frame
             # Add over last motion frame by blending with lighten
@@ -544,8 +549,15 @@ class AppleMotionFlowMulti:
         else:
             # Darken last motion frame
             if do_fade:
-                motion_frame_bg = np.subtract(self.motion_frame, self.mf[0].img_sub.astype(np.int16)).clip(0, 255).astype(
-                np.uint8)
+                if bad_fade:
+                    fade_amt = 0.2
+                    img_black = np.zeros_like(old_frame)
+                    motion_frame_bg = cv2.addWeighted(old_frame, 1 - fade_amt, img_black, fade_amt, 0.0)
+                else:
+                    motion_frame_bg = np.subtract(
+                        old_frame,
+                        self.mf[0].img_sub.astype(np.int16)
+                    ).clip(0, 255).astype(np.uint8)
             else:
                 motion_frame_bg = old_frame
             # Add over last motion frame by blending with lighten
@@ -635,7 +647,7 @@ class LayerMode(Enum):
 
 def main():
     # The type of layering to do
-    layer_mode = LayerMode.BROKEN
+    layer_mode = LayerMode.VERY_BROKEN
     
     # How much to scale outputs up by
     upscale_factor = 6  # 6 to go from 360p to 2160p
@@ -697,9 +709,9 @@ def main():
         try:
             # Get motion frame
             if layer_mode == LayerMode.BROKEN:
-                motion_frame = mfm.calc_motion_frame(old_frame=previous_frame, broken_blending=True, do_fade=False)
+                motion_frame = mfm.calc_motion_frame(old_frame=previous_frame, bad_fade=False, do_fade=False)
             elif layer_mode == LayerMode.VERY_BROKEN:
-                motion_frame = mfm.calc_motion_frame(old_frame=previous_frame, broken_blending=True)
+                motion_frame = mfm.calc_motion_frame(old_frame=previous_frame, bad_fade=True)
             else:
                 motion_frame = mfm.calc_motion_frame()
 
@@ -723,13 +735,10 @@ def main():
                     # Layered over source
                     final_frame = mfm.mf[0].layer_over_image(motion_frame, mfm.ba.frame)
                 case LayerMode.BROKEN:
-                    # TODO: Also use previous_frame for mfm previous motion frame, not internal
                     final_frame = np.clip(
                         1 - np.multiply(1 - motion_frame, 1 - mfm.ba.frame),
                         0,
                         256).astype(np.uint8)
-
-                    #final_frame = mfm.mf[0].layer_over_image(this_motion_frame, mfm.ba.frame)
 
                     previous_frame = final_frame
                 case LayerMode.VERY_BROKEN:
@@ -737,6 +746,8 @@ def main():
                         1 - np.multiply(1 - motion_frame, 1 - mfm.ba.frame),
                         0,
                         256).astype(np.uint8)
+
+                    previous_frame = final_frame
                 case _:
                     final_frame = motion_frame  # No layering (only motion)
 
