@@ -647,22 +647,23 @@ class LayerMode(Enum):
     VERY_BROKEN = 3
     NONE = 4
 
-def run(layer_mode):
-    # How much to scale outputs up by
-    upscale_factor = 6  # 6 to go from 360p to 2160p
-    upscale_method = cv2.INTER_CUBIC
-    # How much to scale down the display by
-    downscale_factor = 1  # 3 to go from 2160p to 720p
-    downscale_method = cv2.INTER_LINEAR
-
+def run(
+        layer_mode,
+        quality=BadApple.Quality.SD,
+        upscale_factor=6,
+        downscale_factor=1,
+        upscale_method = cv2.INTER_NEAREST,
+        downscale_method = cv2.INTER_CUBIC,
+        fade_speed=30
+):
     # Create the 720p BadApple object
-    ba = BadApple(BadApple.Quality.SD)
+    ba = BadApple(quality)
 
     # Create the AppleMotionFlowMulti object
     mfm = AppleMotionFlowMulti(
         ba,
         flow_windows_balance=False,
-        fade_speed=30
+        fade_speed=downscale_method
     )
 
     # Make output filenames
