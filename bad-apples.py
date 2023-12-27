@@ -9,6 +9,8 @@ import blend_modes as bm
 import ffmpeg
 from etatime import EtaBar
 
+# !!!! WARNING: VISUAL HAZARD AHEAD!!! BAD CODE!!! AVERT YOUR EYES!!!
+
 
 # A class to represent the Bad Apple video
 # Capable of multiple video qualities
@@ -645,10 +647,7 @@ class LayerMode(Enum):
     VERY_BROKEN = 3
     NONE = 4
 
-def main():
-    # The type of layering to do
-    layer_mode = LayerMode.VERY_BROKEN
-    
+def run(layer_mode):
     # How much to scale outputs up by
     upscale_factor = 6  # 6 to go from 360p to 2160p
     upscale_method = cv2.INTER_CUBIC
@@ -817,6 +816,14 @@ def main():
     if os.path.exists(new_filename):
         os.remove(temp_filename)  # Delete the temp file
     print("\nAdded audio!")
+
+
+def main():
+    #run(LayerMode.GLITCH)
+    #run(LayerMode.SIMPLE)
+    run(LayerMode.BROKEN)
+    #run(LayerMode.VERY_BROKEN)
+    #run(LayerMode.NONE)
 
 
 if __name__ == "__main__":
