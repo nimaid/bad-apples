@@ -482,28 +482,31 @@ class AppleMotionFlowMulti:
     # Does not modify the object
     # Currently using lighten
     @staticmethod
-    def layer_motion_frames(bottom, top):
-        # Add alpha channel for blend_modes module
-        bottom_alpha = cv2.cvtColor(bottom, cv2.COLOR_RGB2RGBA)
-        top_alpha = cv2.cvtColor(top, cv2.COLOR_RGB2RGBA)
+    def layer_motion_frames(bottom, top, broken_blending=False):
+        if broken_blending:
+            final_frame = np.clip(np.maximum(top, bottom), 0, 256).astype(np.uint8)
+        else:
+            # Add alpha channel for blend_modes module
+            bottom_alpha = cv2.cvtColor(bottom, cv2.COLOR_RGB2RGBA)
+            top_alpha = cv2.cvtColor(top, cv2.COLOR_RGB2RGBA)
 
-        # Convert to float for blend_modes module
-        bottom_alpha_float = bottom_alpha / 255.0
-        top_alpha_float = top_alpha / 255.0
+            # Convert to float for blend_modes module
+            bottom_alpha_float = bottom_alpha / 255.0
+            top_alpha_float = top_alpha / 255.0
 
-        # Do the blending
-        blend_frame = bm.lighten_only(top_alpha_float, bottom_alpha_float, 1.0)
+            # Do the blending
+            blend_frame = bm.lighten_only(top_alpha_float, bottom_alpha_float, 1.0)
 
-        # Convert back to int
-        final_frame_alpha = (blend_frame * 255).astype(np.uint8)
+            # Convert back to int
+            final_frame_alpha = (blend_frame * 255).astype(np.uint8)
 
-        # Strip alpha channel
-        final_frame = cv2.cvtColor(final_frame_alpha, cv2.COLOR_RGBA2RGB)
+            # Strip alpha channel
+            final_frame = cv2.cvtColor(final_frame_alpha, cv2.COLOR_RGBA2RGB)
 
         return final_frame
 
     # Computes the next motion flow frame
-    def calc_motion_frame(self, old_frame=None):
+    def calc_motion_frame(self, old_frame=None, broken_blending=False):
         result = self.get_next_src_frame()
         # If we haven't gotten the second frame yet, get it
         if self.prev_src_frame is None:
@@ -522,21 +525,27 @@ class AppleMotionFlowMulti:
             if self.flow_windows_balance:
                 motion_flow_frame = np.around(motion_flow_frame / self.num_windows).astype(np.uint8)
             # Layer over previous motion flow frames
-            motion_frame = self.layer_motion_frames(motion_flow_frame, motion_frame)
+            motion_frame = self.layer_motion_frames(motion_flow_frame, motion_frame, broken_blending=broken_blending)
 
         # layer over old motion frame if it exists
         if old_frame is not None:
             # Darken last motion frame
-            motion_frame_bg = np.subtract(old_frame, self.mf[0].img_sub.astype(np.int16)).clip(0, 255).astype(
+            if not broken_blending:
+                motion_frame_bg = np.subtract(old_frame, self.mf[0].img_sub.astype(np.int16)).clip(0, 255).astype(
                 np.uint8)
+            else:
+                motion_frame_bg = old_frame
             # Add over last motion frame by blending with lighten
             layered_motion_frame = np.clip(np.maximum(motion_frame_bg, motion_frame), 0, 256).astype(np.uint8)
         elif self.prev_motion_frame is None:  # We don't have both, just set the motion current frame be the first frame
             layered_motion_frame = motion_frame
         else:
             # Darken last motion frame
-            motion_frame_bg = np.subtract(self.motion_frame, self.mf[0].img_sub.astype(np.int16)).clip(0, 255).astype(
+            if not broken_blending:
+                motion_frame_bg = np.subtract(self.motion_frame, self.mf[0].img_sub.astype(np.int16)).clip(0, 255).astype(
                 np.uint8)
+            else:
+                motion_frame_bg = old_frame
             # Add over last motion frame by blending with lighten
             layered_motion_frame = np.clip(np.maximum(motion_frame_bg, motion_frame), 0, 256).astype(np.uint8)
 
@@ -684,7 +693,10 @@ def main():
     for i in EtaBar(range(ba.total_frames), bar_format="{l_bar}{bar}{r_barL}", file=sys.stdout):
         try:
             # Get motion frame
-            motion_frame = mfm.calc_motion_frame(old_frame=previous_frame)
+            if layer_mode == LayerMode.BROKEN:
+                motion_frame = mfm.calc_motion_frame(old_frame=previous_frame, broken_blending=True)
+            else:
+                motion_frame = mfm.calc_motion_frame()
 
             # This means it could not read the frame
             if motion_frame is None:
