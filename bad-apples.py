@@ -611,7 +611,7 @@ class BadAppleResizeDummy:
 
         self.filename_full = self.ba.filename_full
 
-        self.video = self.ba.video
+        self.video = self.ba.video_file
 
         self.total_frames = self.ba.total_frames
 
@@ -621,7 +621,7 @@ class BadAppleResizeDummy:
     # Function to open the source video
     def open(self):
         result = self.ba.open()
-        self.video = self.ba.video
+        self.video = self.ba.video_file
         return result
 
     # Function to close the source video
@@ -811,7 +811,7 @@ def run(
     # Mux original audio and new video together (lossless, copy streams)
     print("\nAdding audio...\n")
     audio_original = ffmpeg.input(ba.filename).audio
-    video_new = ffmpeg.input(temp_filename).video
+    video_new = ffmpeg.input(temp_filename).video_file
     video_muxed = ffmpeg.output(audio_original, video_new, new_filename, vcodec='copy', acodec='copy')
     ffmpeg_result = video_muxed.run()
     if os.path.exists(new_filename):
@@ -822,8 +822,8 @@ def run(
 def main():
     #run(LayerMode.GLITCH)
     #run(LayerMode.SIMPLE)
-    run(LayerMode.BROKEN)
-    #run(LayerMode.VERY_BROKEN)
+    #run(LayerMode.BROKEN, quality=BadApple.Quality.FHD60)
+    run(LayerMode.VERY_BROKEN)
     #run(LayerMode.NONE)
 
 
