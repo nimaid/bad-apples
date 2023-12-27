@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 import blend_modes as bm
 import ffmpeg
-from etatime.eta import eta_bar
+from etatime import EtaBar
 
 
 # A class to represent the Bad Apple video
@@ -661,7 +661,7 @@ def main():
     # Play the video
     user_stopped = False
     final_video_frame = None
-    for i in eta_bar(range(ba.total_frames), verbose=True, file=sys.stdout, width=20):
+    for i in EtaBar(range(ba.total_frames), bar_format="{l_bar}{bar}{r_barL}", file=sys.stdout):
         try:
             # Get motion frame
             motion_frame = mfm.calc_motion_frame()

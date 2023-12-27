@@ -5,7 +5,7 @@ from enum import Enum
 import hashlib
 import cv2
 import numpy as np
-from etatime.eta import eta_bar
+from etatime import EtaBar
 
 bad_apple_video = "bad_apple.mp4"
 
@@ -138,7 +138,7 @@ def main():
 
     # Play the video
     frame_count = 0
-    for i in eta_bar(range(total_frames), verbose=True, file=sys.stdout, width=20):
+    for i in EtaBar(range(total_frames), bar_format="{l_bar}{bar}{r_barL}", file=sys.stdout):
         ret, frame2 = video.read()  # Read a single frame
         if not ret:  # This mean it could not read the frame
             print("\nCould not read the frame, video is likely over.")

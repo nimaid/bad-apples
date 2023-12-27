@@ -9,4 +9,4 @@ dependencies:
     - opencv-python
     - blend_modes
     - ffmpeg-python
-    - etatime>=2.7.6
+    - etatime>=3.0.0
