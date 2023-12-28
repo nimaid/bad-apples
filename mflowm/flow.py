@@ -274,7 +274,7 @@ class MotionFlowMulti:
                     break
 
                 # Display frame
-                if output_scale != 1:
+                if display_scale != 1:
                     display_frame = cv2.resize(final_frame, display_size, 0, 0, interpolation=output_scale_method)
                 else:
                     display_frame = final_frame
@@ -334,7 +334,7 @@ class MotionFlowMulti:
         # Mux original audio and new video together (lossless, copy streams)
         logging.info("Adding audio...")
         audio_original = ffmpeg.input(self.video_file.filename).audio
-        video_new = ffmpeg.input(temp_filename).video_file
+        video_new = ffmpeg.input(temp_filename).video
         video_muxed = ffmpeg.output(audio_original, video_new, filename, vcodec='copy', acodec='copy')
         ffmpeg_result = video_muxed.run()
         if os.path.exists(filename):
