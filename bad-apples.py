@@ -5,7 +5,8 @@ import numpy as np
 import ffmpeg
 from etatime import EtaBar
 
-from mflowm import BadApple, Quality, MotionFlowMulti, CompositeMode
+from mflowm import MotionFlowMulti, CompositeMode
+from bad_apple import BadApple, Quality
 
 
 def run(
