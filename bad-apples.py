@@ -157,11 +157,11 @@ def run(
 
 
 def main():
-    run(CompositeMode.NONE)
+    #run(CompositeMode.NONE)
     #run(CompositeMode.SIMPLE)
     #run(CompositeMode.GLITCH)
     #run(CompositeMode.BROKEN_A)
-    #run(CompositeMode.BROKEN_B)
+    run(CompositeMode.BROKEN_B)
 
 
 if __name__ == "__main__":

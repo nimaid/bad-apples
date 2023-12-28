@@ -44,7 +44,7 @@ class MotionFlowMulti:
         self.blur_amount = blur_amount
         self.fade_speed = fade_speed
 
-        if self.mode in [CompositeMode.BROKEN_A, CompositeMode.BROKEN_A] and not self.trails:
+        if self.mode in [CompositeMode.BROKEN_A, CompositeMode.BROKEN_B] and not self.trails:
             logging.warning("Overriding trails setting to enable broken composite mode.")
             self.trails = True
 
