@@ -142,7 +142,7 @@ class MotionFlowMulti:
         result = self._get_next_src_frame()
         # If we haven't gotten the second frame yet, get it
         if self.prev_src_frame is None:
-            result = not ((not result) | (not self._get_next_src_frame()))
+            result = result and self._get_next_src_frame()
 
         if not result:
             self.motion_frame = None
