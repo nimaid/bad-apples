@@ -44,13 +44,13 @@ def main():
     #'''
     mflowm.run(
         filename="VID_20231228_140428063.mp4",
-        mode=CompositeMode.SIMPLE,
-        pre_scale=0.5,
-        fade_speed=20,
+        mode=CompositeMode.GLITCH,
+        pre_scale=0.25,
+        fade_speed=None,
         display_scale=0.5,
-        windows_balance=False,
+        windows_balance=True,
         trails=True,
-        scale_method=cv2.INTER_LANCZOS4
+        scale_method=cv2.INTER_NEAREST
     )
     #'''
 
