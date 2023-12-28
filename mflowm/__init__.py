@@ -1,2 +1,3 @@
-from mflowm.files import VideoFile
-from mflowm.flow import MotionFlowMulti, layer_motion_frames, layer_over_image
+from mflowm.files import VideoReader, BadApple
+from mflowm.flow import MotionFlowMulti, CompositeMode
+from mflowm.layer import LayerMode, layer_images

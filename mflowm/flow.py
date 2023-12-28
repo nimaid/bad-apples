@@ -1,61 +1,24 @@
 import cv2
 import numpy as np
-import blend_modes as bm
 
-from mflowm.files import VideoFile
+from mflowm.files import VideoReader
+from mflowm.layer import LayerMode, layer_images
 
 
-def layer_motion_frames(top, bottom, clip: bool = False):
-    if clip:
-        final_frame = np.clip(np.maximum(top, bottom), 0, 256).astype(np.uint8)
-    else:
-        # Add alpha channel for blend_modes module
-        bottom_alpha = cv2.cvtColor(bottom, cv2.COLOR_RGB2RGBA)
-        top_alpha = cv2.cvtColor(top, cv2.COLOR_RGB2RGBA)
-
-        # Convert to float for blend_modes module
-        bottom_alpha_float = bottom_alpha / 255.0
-        top_alpha_float = top_alpha / 255.0
-
-        # Do the blending with lighten
-        blend_frame = bm.lighten_only(top_alpha_float, bottom_alpha_float, 1.0)
-
-        # Convert back to int
-        final_frame_alpha = (blend_frame * 255).astype(np.uint8)
-
-        # Strip alpha channel
-        final_frame = cv2.cvtColor(final_frame_alpha, cv2.COLOR_RGBA2RGB)
-
-    return final_frame
-
-# Function used to layer motion colors over the source video
-# Currently using difference
-def layer_over_image(top, bottom):
-    # Add alpha channel for blend_modes module
-    bottom_alpha = cv2.cvtColor(bottom, cv2.COLOR_RGB2RGBA)
-    top_alpha = cv2.cvtColor(top, cv2.COLOR_RGB2RGBA)
-
-    # Convert to float for blend_modes module
-    bottom_alpha_float = bottom_alpha / 255.0
-    top_alpha_float = top_alpha / 255.0
-
-    # Do the blending
-    blend_frame = bm.difference(top_alpha_float, bottom_alpha_float, 1.0)
-
-    # Convert back to int
-    final_frame_alpha = (blend_frame * 255).astype(np.uint8)
-
-    # Strip alpha channel
-    final_frame = cv2.cvtColor(final_frame_alpha, cv2.COLOR_RGBA2RGB)
-
-    return final_frame
+class CompositeMode:
+    NONE = 0
+    SIMPLE = 1
+    GLITCH = 2
+    BROKEN_A = 3
+    BROKEN_B = 4
 
 
 class MotionFlowMulti:
     """A class to handle multi-pass motion flow computation"""
     def __init__(
             self,
-            video_file: VideoFile,  # Existing VideoFile object
+            video_file: VideoReader,  # Existing VideoFile object
+            mode: CompositeMode = CompositeMode.NONE,  # How to combine the motion with the source
             num_windows: int = 7,  # Number of flow calculations to do at different sizes
             windows_min: int = 7,  # Relative to video scale, higher gets bigger motions but is blurrier
             windows_max: int = 35,  # Relative to video scale, higher gets bigger motions but is blurrier
@@ -68,6 +31,7 @@ class MotionFlowMulti:
             fade_speed: int = 2  # Relative to FPS
     ):
         self.video_file = video_file
+        self.mode = mode
         self.num_windows = num_windows
         self.windows_balance = windows_balance
         self.layers = layers
@@ -95,9 +59,6 @@ class MotionFlowMulti:
         self.motion_frame = None
         self.prev_motion_frame = None
 
-        # Init other vars
-        self.flow = [None for x in self.window_sizes]
-
     def blur_px(self, window_size):
         blur_px = max(round(self.blur_amount * window_size), 1)
         if blur_px % 2 == 0:
@@ -114,14 +75,6 @@ class MotionFlowMulti:
         self.prev_src_frame = self.src_frame
         self.src_frame = self.video_file.frame
         return True
-
-    # Alternate way to set with external frames
-    def set_next_src_frames(self, src_frame, prev_src_frame=None):
-        if prev_src_frame is None:
-            self.prev_src_frame = self.src_frame
-        else:
-            self.prev_src_frame = prev_src_frame
-        self.src_frame = src_frame
 
     # Function to darken an image based on the fade amount
     def fade_img(self, img, make_new_fade=False):
@@ -143,7 +96,7 @@ class MotionFlowMulti:
         second_frame_gray = cv2.cvtColor(second_frame, cv2.COLOR_BGR2GRAY)
 
         # Get flow
-        if prev_flow is None:  # Oh god it SUCKS why doesn't it work never give it the flow for the love of god
+        if prev_flow is None:  # I don't even track the last flows b/c this looks bad when used
             flow_in = None
             flow_opts = 0
         else:
@@ -165,7 +118,7 @@ class MotionFlowMulti:
 
         mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
         self.hsv[..., 0] = ang * 180 / np.pi / 2
-        self.hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
+        self.hsv[..., 2] = cv2.normalize(src=mag, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
         flow_frame = cv2.cvtColor(self.hsv, cv2.COLOR_HSV2BGR)
 
         # Smooth colors with a blur
@@ -197,7 +150,7 @@ class MotionFlowMulti:
             if self.windows_balance:
                 motion_flow_frame = np.around(motion_flow_frame / self.num_windows).astype(np.uint8)
             # Layer over previous motion flow frames
-            motion_frame = layer_motion_frames(motion_flow_frame, motion_frame)
+            motion_frame = layer_images(motion_flow_frame, motion_frame, LayerMode.LIGHTEN)
 
         # Layer over old motion frame if it exists
         if old_frame is None or self.prev_motion_frame is None:  # We don't have both, just set the motion current frame be the first frame
@@ -222,11 +175,36 @@ class MotionFlowMulti:
         return self.motion_frame
 
     def calc_full_frame(self):
-        motion_frame = self.calc_motion_frame()
+        match self.mode:
+            case CompositeMode.BROKEN_A:
+                motion_frame = self.calc_motion_frame(
+                    old_frame=self.frame,
+                    bad_fade=False,
+                    do_fade=False
+                )
+            case CompositeMode.BROKEN_B:
+                motion_frame = self.calc_motion_frame(
+                    old_frame=self.frame,
+                    bad_fade=True
+                )
+            case _:
+                motion_frame = self.calc_motion_frame()
+
         if motion_frame is None:
             self.frame = None
             return None
-        layered_frame = layer_over_image(self.src_frame, motion_frame)
 
-        self.frame = layered_frame
+        # Layer the motion over the source
+        match self.mode:
+            case CompositeMode.GLITCH:
+                layered_frame = layer_images(self.src_frame, motion_frame, LayerMode.DIFFERENCE)
+                final_frame = layer_images(layered_frame, motion_frame, LayerMode.INVERT_CLIP)
+            case CompositeMode.SIMPLE:
+                final_frame = layer_images(self.src_frame, motion_frame, LayerMode.DIFFERENCE)
+            case CompositeMode.BROKEN_A | CompositeMode.BROKEN_B:
+                final_frame = layer_images(self.src_frame, motion_frame, LayerMode.INVERT_CLIP)
+            case _:
+                final_frame = motion_frame  # No layering (only motion)
+
+        self.frame = final_frame
         return self.frame
