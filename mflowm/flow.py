@@ -33,7 +33,7 @@ class MotionFlowMulti:
             poly_n: int = 7,
             poly_sigma: int = 1.5,
             blur_amount: int = 1.5,  # Relative to video scale and flow window
-            fade_speed: int = 2  # Relative to FPS
+            fade_speed: float = 2  # Relative to FPS
     ):
         self.video_file = video_file
         self.mode = mode
@@ -54,7 +54,7 @@ class MotionFlowMulti:
         self.window_sizes = [int(round(x)) for x in np.linspace(windows_min, windows_max, self.num_windows)]
 
         # Make image to fade with
-        self.fade_amt = max(round(self.fade_speed / self.video_file.fps_scale), 1)
+        self.fade_amt = round(self.fade_speed / self.video_file.fps_scale)
 
         # Make HSV array
         self.hsv = np.zeros(self.video_file.shape).astype(np.uint8)
@@ -62,6 +62,7 @@ class MotionFlowMulti:
 
         # Init frames
         self.frame = None
+
         self.src_frame = None
         self.prev_src_frame = None
 
@@ -176,11 +177,14 @@ class MotionFlowMulti:
             else:
                 motion_frame_bg = old_frame
             # Add over last motion frame by blending with lighten
-            layered_motion_frame = layer_images(motion_frame_bg, motion_frame, LayerMode.CLIP)
+            layered_motion_frame = layer_images(motion_frame, motion_frame_bg, LayerMode.CLIP)
 
-        self.prev_motion_frame = motion_frame
+        if self.motion_frame is not None:
+            self.prev_motion_frame = self.motion_frame
+        else:
+            self.prev_motion_frame = None
+
         self.motion_frame = layered_motion_frame
-
         return self.motion_frame
 
     def get_next_frame(self):
@@ -188,7 +192,6 @@ class MotionFlowMulti:
             case CompositeMode.BROKEN_A:
                 motion_frame = self._calc_motion_frame(
                     old_frame=self.frame,
-                    bad_fade=False,
                     do_fade=False
                 )
             case CompositeMode.BROKEN_B:
@@ -197,7 +200,7 @@ class MotionFlowMulti:
                     bad_fade=True
                 )
             case _:
-                motion_frame = self._calc_motion_frame()
+                motion_frame = self._calc_motion_frame(do_fade=False)
 
         if motion_frame is None:
             self.frame = None
@@ -271,7 +274,8 @@ class MotionFlowMulti:
                     logging.warning("Could not read the frame, video is likely over.")
                     cv2.destroyWindow(window_name)
                     self.video_file.close()
-                    break
+                    new_video.release()
+                    return
 
                 # Display frame
                 if display_scale != 1:
