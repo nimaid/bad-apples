@@ -1,6 +1,9 @@
+import os
 import cv2
 import logging
 import numpy as np
+from etatime import EtaBar
+import ffmpeg
 
 from mflowm.files import VideoReader
 from mflowm.layer import LayerMode, layer_images
@@ -24,7 +27,7 @@ class MotionFlowMulti:
             num_windows: int = 7,  # Number of flow calculations to do at different sizes
             windows_min: int = 7,  # Relative to video scale, higher gets bigger motions but is blurrier
             windows_max: int = 35,  # Relative to video scale, higher gets bigger motions but is blurrier
-            windows_balance: bool = True,  # If we want to divide each motion layer brightness based on number of windows
+            windows_balance: bool = False,  # If we want to divide each motion layer brightness based on number of windows
             layers: int = 1,  # Number of layers in computation, more is better but slower
             iterations: int = 3,  # Number of iterations per layer, more is better but slower
             poly_n: int = 7,
@@ -214,3 +217,126 @@ class MotionFlowMulti:
 
         self.frame = final_frame
         return self.frame
+
+    def convert_to_file(
+            self,
+            filename_suffix="_flow",
+            output_scale=1,
+            display_scale=1,
+            output_scale_method=cv2.INTER_NEAREST,
+            display_scale_method=cv2.INTER_NEAREST,
+            window_title="Python MotionFlowMulti (mflowm)",
+            quit_key="q",
+            fade_to_black=True
+    ):
+        # Make output filenames
+        filename = self.video_file.name + filename_suffix + ".mp4"
+        temp_filename = self.video_file.name + "_temp" + ".mp4"
+
+        # Delete existing outputs
+        try:
+            os.remove(temp_filename)
+        except FileNotFoundError:
+            pass
+
+        try:
+            os.remove(filename)
+        except FileNotFoundError:
+            pass
+
+        # Calculate video sizes
+        video_size = (round(self.video_file.width * output_scale), round(self.video_file.height * output_scale))
+        display_size = (round(self.video_file.width * display_scale), round(self.video_file.height * display_scale))
+
+        # Start writing new file
+        new_video = cv2.VideoWriter(
+            filename=temp_filename,
+            fourcc=cv2.VideoWriter.fourcc(*"mp4v"),
+            fps=self.video_file.fps,
+            frameSize=video_size
+        )
+
+        # Make playback window
+        window_name = f"{window_title} (press {quit_key.upper()} to quit)"
+        cv2.namedWindow(window_name)
+
+        # Play the video
+        user_stopped = False
+        final_video_frame = None
+        for i in EtaBar(range(self.video_file.total_frames), bar_format="{l_bar}{bar}{r_barL}"):
+            try:
+                final_frame = self.get_next_frame()
+                # This means it could not read the frame (should never happen)
+                if final_frame is None:
+                    logging.warning("Could not read the frame, video is likely over.")
+                    cv2.destroyWindow(window_name)
+                    self.video_file.close()
+                    break
+
+                # Display frame
+                if output_scale != 1:
+                    display_frame = cv2.resize(final_frame, display_size, 0, 0, interpolation=output_scale_method)
+                else:
+                    display_frame = final_frame
+                cv2.imshow(window_name, display_frame)
+
+                # Scale frame for outputs
+                if output_scale != 1:
+                    final_video_frame = cv2.resize(final_frame, video_size, 0, 0, interpolation=display_scale_method)
+                else:
+                    final_video_frame = final_frame
+
+                # Save frame
+                new_video.write(final_video_frame)
+
+                # Exit hotkey
+                stop_playing = False
+                wait_key = (cv2.waitKey(1) & 0xFF)
+                if wait_key == ord(quit_key):  # If quit key pressed
+                    logging.warning(f"User interrupted rendering process. ({quit_key.upper()})")
+                    stop_playing = True
+            except KeyboardInterrupt:
+                logging.warning("User interrupted rendering process. (CTRL + C)")
+                stop_playing = True
+
+            if stop_playing:
+                logging.warning("Closing video and exiting...")
+                user_stopped = True
+                cv2.destroyWindow(window_name)
+                self.video_file.close()
+                break
+
+        # Add fade frames and keep fading until it is fully black
+        if fade_to_black:
+            fade_frames = 0
+            if not user_stopped:
+                logging.info("Adding extra frames so that the video fades fully to black...")
+                while np.sum(final_video_frame, axis=None) != 0:  # While the last frame isn't completely black
+                    try:
+                        logging.info(f"Fade frame {fade_frames + 1}")
+                        final_video_frame = self._fade_img(final_video_frame)  # Fade the image
+                        new_video.write(final_video_frame)  # Write the image
+                        fade_frames += 1
+                    except KeyboardInterrupt:
+                        logging.warning("User interrupted fading process. (CTRL + C)")
+                        user_stopped = True
+                        break
+                if not user_stopped:
+                    logging.info("Video is now fully black!")
+
+        # Save new video
+        new_video.release()
+
+        # If user quit, stop here
+        if user_stopped:
+            return
+
+        # Mux original audio and new video together (lossless, copy streams)
+        logging.info("Adding audio...")
+        audio_original = ffmpeg.input(self.video_file.filename).audio
+        video_new = ffmpeg.input(temp_filename).video_file
+        video_muxed = ffmpeg.output(audio_original, video_new, filename, vcodec='copy', acodec='copy')
+        ffmpeg_result = video_muxed.run()
+        if os.path.exists(filename):
+            os.remove(temp_filename)  # Delete the temp file
+        logging.info("Done converting video!")

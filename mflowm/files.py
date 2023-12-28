@@ -24,6 +24,7 @@ class VideoReader:
         self.height = int(self.video.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.total_frames = int(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
         self.fps = self.video.get(cv2.CAP_PROP_FPS)
+        self.fourcc = int(self.video.get(cv2.CAP_PROP_FOURCC))
 
         self.size = (self.width, self.height)
         self.shape = (self.height, self.width, 3)
