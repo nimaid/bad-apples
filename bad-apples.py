@@ -11,12 +11,13 @@ from mflowm import BadApple, MotionFlowMulti, CompositeMode
 
 def run(
         mode: CompositeMode,
+        trails: bool = False,
         quality=BadApple.Quality.SD,
         upscale_factor=6,
         downscale_factor=1,
         upscale_method=cv2.INTER_NEAREST,
         downscale_method=cv2.INTER_CUBIC,
-        fade_speed=30
+        fade_speed=2
 ):
     # Create the BadApple object
     video_reader = BadApple(quality)
@@ -25,6 +26,7 @@ def run(
     mfm = MotionFlowMulti(
         video_reader,
         mode=mode,
+        trails=trails,
         windows_balance=False,
         fade_speed=fade_speed
     )
@@ -147,11 +149,11 @@ def run(
 
 
 def main():
-    #run(CompositeMode.GLITCH)
+    run(CompositeMode.NONE)
     #run(CompositeMode.SIMPLE)
+    #run(CompositeMode.GLITCH)
     #run(CompositeMode.BROKEN_A)
     #run(CompositeMode.BROKEN_B)
-    run(CompositeMode.NONE)
 
 
 if __name__ == "__main__":

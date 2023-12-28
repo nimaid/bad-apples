@@ -1,4 +1,5 @@
 import cv2
+import logging
 import numpy as np
 
 from mflowm.files import VideoReader
@@ -12,12 +13,14 @@ class CompositeMode:
     BROKEN_A = 3
     BROKEN_B = 4
 
+
 class MotionFlowMulti:
     """A class to handle multi-pass motion flow computation"""
     def __init__(
             self,
             video_file: VideoReader,  # Existing VideoFile object
             mode: CompositeMode = CompositeMode.NONE,  # How to combine the motion with the source
+            trails: bool = True,
             num_windows: int = 7,  # Number of flow calculations to do at different sizes
             windows_min: int = 7,  # Relative to video scale, higher gets bigger motions but is blurrier
             windows_max: int = 35,  # Relative to video scale, higher gets bigger motions but is blurrier
@@ -31,6 +34,7 @@ class MotionFlowMulti:
     ):
         self.video_file = video_file
         self.mode = mode
+        self.trails = trails
         self.num_windows = num_windows
         self.windows_balance = windows_balance
         self.layers = layers
@@ -39,6 +43,10 @@ class MotionFlowMulti:
         self.poly_sigma = poly_sigma
         self.blur_amount = blur_amount
         self.fade_speed = fade_speed
+
+        if self.mode in [CompositeMode.BROKEN_A, CompositeMode.BROKEN_A] and not self.trails:
+            logging.warning("Overriding trails setting to enable broken composite mode")
+            self.trails = True
 
         self.window_sizes = [int(round(x)) for x in np.linspace(windows_min, windows_max, self.num_windows)]
 
@@ -152,8 +160,11 @@ class MotionFlowMulti:
             # Layer over previous motion flow frames
             motion_frame = layer_images(motion_flow_frame, motion_frame, LayerMode.LIGHTEN)
 
+        if old_frame is None:
+            old_frame = self.prev_motion_frame
+
         # Layer over old motion frame if it exists
-        if old_frame is None or self.prev_motion_frame is None:  # We don't have both, just set the motion current frame be the first frame
+        if old_frame is None or not self.trails:  # Just set the motion current frame be the first frame
             layered_motion_frame = motion_frame
         else:
             # Darken last motion frame
@@ -164,7 +175,7 @@ class MotionFlowMulti:
             # Add over last motion frame by blending with lighten
             layered_motion_frame = layer_images(motion_frame_bg, motion_frame, LayerMode.CLIP)
 
-        self.prev_motion_frame = self.motion_frame
+        self.prev_motion_frame = motion_frame
         self.motion_frame = layered_motion_frame
 
         return self.motion_frame
