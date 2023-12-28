@@ -162,7 +162,7 @@ class MotionFlowMulti:
             else:
                 motion_frame_bg = old_frame
             # Add over last motion frame by blending with lighten
-            layered_motion_frame = np.clip(np.maximum(motion_frame_bg, motion_frame), 0, 256).astype(np.uint8)
+            layered_motion_frame = layer_images(motion_frame_bg, motion_frame, LayerMode.CLIP)
 
         self.prev_motion_frame = self.motion_frame
         self.motion_frame = layered_motion_frame
