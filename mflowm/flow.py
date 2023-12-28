@@ -12,7 +12,6 @@ class CompositeMode:
     BROKEN_A = 3
     BROKEN_B = 4
 
-
 class MotionFlowMulti:
     """A class to handle multi-pass motion flow computation"""
     def __init__(
@@ -45,7 +44,6 @@ class MotionFlowMulti:
 
         # Make image to fade with
         self.fade_amt = max(round(self.fade_speed / self.video_file.fps_scale), 1)
-        self.img_sub = np.ones(self.video_file.shape) * self.fade_amt
 
         # Make HSV array
         self.hsv = np.zeros(self.video_file.shape).astype(np.uint8)
@@ -77,11 +75,13 @@ class MotionFlowMulti:
         return True
 
     # Function to darken an image based on the fade amount
-    def fade_img(self, img, make_new_fade=False):
-        if make_new_fade:  # Don't use pre-computed array
-            img_sub = np.ones_like(img) * self.fade_amt
-        else:
-            img_sub = self.img_sub
+    def fade_img(self, img, bad_fade=False):
+        if bad_fade:
+            fade_amt = 0.2
+            img_black = np.zeros_like(img)
+            return cv2.addWeighted(img, 1 - fade_amt, img_black, fade_amt, 0.0)
+
+        img_sub = np.ones_like(img) * self.fade_amt
         return np.subtract(img, img_sub.astype(np.int16)).clip(0, 255).astype(np.uint8)
 
     def get_flow(
@@ -158,12 +158,7 @@ class MotionFlowMulti:
         else:
             # Darken last motion frame
             if do_fade:
-                if bad_fade:
-                    fade_amt = 0.2
-                    img_black = np.zeros_like(old_frame)
-                    motion_frame_bg = cv2.addWeighted(old_frame, 1 - fade_amt, img_black, fade_amt, 0.0)
-                else:
-                    motion_frame_bg = self.fade_img(old_frame)
+                motion_frame_bg = self.fade_img(old_frame, bad_fade=bad_fade)
             else:
                 motion_frame_bg = old_frame
             # Add over last motion frame by blending with lighten

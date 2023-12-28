@@ -151,7 +151,7 @@ def main():
     #run(CompositeMode.SIMPLE)
     #run(CompositeMode.BROKEN_A)
     #run(CompositeMode.BROKEN_B)
-    run(CompositeMode.NONE, BadApple.Quality.HD)
+    run(CompositeMode.NONE)
 
 
 if __name__ == "__main__":
