@@ -184,8 +184,6 @@ class MotionFlowMulti:
             # Add over last motion frame by blending with lighten
             layered_motion_frame = layer_images(motion_frame, motion_frame_bg, LayerMode.CLIP)
 
-
-
         self.motion_frame = layered_motion_frame
         return self.motion_frame
 
@@ -268,7 +266,7 @@ class MotionFlowMulti:
         # Play the video
         user_stopped = False
         final_video_frame = None
-        for i in EtaBar(range(self.video_file.total_frames), bar_format="{l_bar}{bar}{r_barL}"):
+        for i in EtaBar(range(self.video_file.total_frames - 1), bar_format="{l_bar}{bar}{r_barL}"):
             try:
                 final_frame = self.get_next_frame()
                 # This means it could not read the frame (should never happen)
@@ -277,7 +275,7 @@ class MotionFlowMulti:
                     cv2.destroyWindow(window_name)
                     self.video_file.close()
                     new_video.release()
-                    return
+                    break
 
                 # Display frame
                 if display_scale != 1:
