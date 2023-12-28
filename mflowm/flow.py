@@ -65,7 +65,7 @@ class MotionFlowMulti:
         self.motion_frame = None
         self.prev_motion_frame = None
 
-    def blur_px(self, window_size):
+    def _blur_px(self, window_size):
         blur_px = max(round(self.blur_amount * window_size), 1)
         if blur_px % 2 == 0:
             blur_px += 1
@@ -73,7 +73,7 @@ class MotionFlowMulti:
         return blur_px
 
     # Function to read next frame from video file
-    def get_next_src_frame(self) -> bool:
+    def _get_next_src_frame(self) -> bool:
         self.video_file.read_frame()
         # Check if frame could not be gotten
         if self.video_file.frame is None:
@@ -83,7 +83,7 @@ class MotionFlowMulti:
         return True
 
     # Function to darken an image based on the fade amount
-    def fade_img(self, img, bad_fade=False):
+    def _fade_img(self, img, bad_fade=False):
         if bad_fade:
             fade_amt = 0.2
             img_black = np.zeros_like(img)
@@ -92,7 +92,7 @@ class MotionFlowMulti:
         img_sub = np.ones_like(img) * self.fade_amt
         return np.subtract(img, img_sub.astype(np.int16)).clip(0, 255).astype(np.uint8)
 
-    def get_flow(
+    def _get_flow(
             self,
             first_frame,
             second_frame,
@@ -130,16 +130,16 @@ class MotionFlowMulti:
         flow_frame = cv2.cvtColor(self.hsv, cv2.COLOR_HSV2BGR)
 
         # Smooth colors with a blur
-        smooth_frame = cv2.GaussianBlur(flow_frame, (self.blur_px(window_size), self.blur_px(window_size)), 0)
+        smooth_frame = cv2.GaussianBlur(flow_frame, (self._blur_px(window_size), self._blur_px(window_size)), 0)
 
         return smooth_frame
 
     # Computes the next motion flow frame
-    def calc_motion_frame(self, old_frame=None, bad_fade=False, do_fade=True):
-        result = self.get_next_src_frame()
+    def _calc_motion_frame(self, old_frame=None, bad_fade=False, do_fade=True):
+        result = self._get_next_src_frame()
         # If we haven't gotten the second frame yet, get it
         if self.prev_src_frame is None:
-            result = not ((not result) | (not self.get_next_src_frame()))
+            result = not ((not result) | (not self._get_next_src_frame()))
 
         if not result:
             self.motion_frame = None
@@ -148,7 +148,7 @@ class MotionFlowMulti:
         # Compute the multi-pass optical flow motion frame
         motion_frame = np.zeros(self.video_file.shape).astype(np.uint8)
         for window_index, window_size in enumerate(self.window_sizes):
-            motion_flow_frame = self.get_flow(
+            motion_flow_frame = self._get_flow(
                 first_frame=self.prev_src_frame,
                 second_frame=self.src_frame,
                 window_size=window_size
@@ -169,7 +169,7 @@ class MotionFlowMulti:
         else:
             # Darken last motion frame
             if do_fade:
-                motion_frame_bg = self.fade_img(old_frame, bad_fade=bad_fade)
+                motion_frame_bg = self._fade_img(old_frame, bad_fade=bad_fade)
             else:
                 motion_frame_bg = old_frame
             # Add over last motion frame by blending with lighten
@@ -180,21 +180,21 @@ class MotionFlowMulti:
 
         return self.motion_frame
 
-    def calc_full_frame(self):
+    def get_next_frame(self):
         match self.mode:
             case CompositeMode.BROKEN_A:
-                motion_frame = self.calc_motion_frame(
+                motion_frame = self._calc_motion_frame(
                     old_frame=self.frame,
                     bad_fade=False,
                     do_fade=False
                 )
             case CompositeMode.BROKEN_B:
-                motion_frame = self.calc_motion_frame(
+                motion_frame = self._calc_motion_frame(
                     old_frame=self.frame,
                     bad_fade=True
                 )
             case _:
-                motion_frame = self.calc_motion_frame()
+                motion_frame = self._calc_motion_frame()
 
         if motion_frame is None:
             self.frame = None

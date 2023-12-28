@@ -1,11 +1,33 @@
 import os
-import urllib
+import urllib.parse, urllib.request
 from enum import Enum
 import logging
 import hashlib
 import cv2
 
 logging.basicConfig(level=logging.INFO)
+
+
+def validate(filename, sha1):
+    # Check to make sure the file is there
+    if not os.path.isfile(filename):
+        return False
+
+    # Check if file is corrupted
+    buffer_size = 65536  # Let's read stuff in 64kb chunks
+    download_sha1 = hashlib.sha1()
+    with open(filename, 'rb') as f:
+        while True:
+            data = f.read(buffer_size)
+            if not data:
+                break
+            download_sha1.update(data)
+
+    download_sha1 = download_sha1.hexdigest()
+    if sha1 != download_sha1:
+        return False
+
+    return True
 
 
 class VideoReader:
@@ -155,7 +177,7 @@ class BadApple(VideoReader):
             logging.info("Video downloaded!")
 
         logging.info("Starting checksum verification...")
-        is_valid = self.validate(filename=filename, sha1=sha1)
+        is_valid = validate(filename=filename, sha1=sha1)
         if not is_valid:
             logging.fatal("Checksum invalid!")
             os.remove(filename)
@@ -164,25 +186,3 @@ class BadApple(VideoReader):
 
         return filename
 
-    # Function to validate if the video is missing or corrupt
-    @staticmethod
-    def validate(filename, sha1):
-        # Check to make sure the file is there
-        if not os.path.isfile(filename):
-            return False
-
-        # Check if file is corrupted
-        buffer_size = 65536  # Let's read stuff in 64kb chunks
-        download_sha1 = hashlib.sha1()
-        with open(filename, 'rb') as f:
-            while True:
-                data = f.read(buffer_size)
-                if not data:
-                    break
-                download_sha1.update(data)
-
-        download_sha1 = download_sha1.hexdigest()
-        if sha1 != download_sha1:
-            return False
-
-        return True

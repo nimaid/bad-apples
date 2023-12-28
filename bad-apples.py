@@ -1,6 +1,5 @@
 import os
 import sys
-from enum import Enum
 import cv2
 import numpy as np
 import ffmpeg
@@ -80,7 +79,7 @@ def run(
     previous_frame = None
     for i in EtaBar(range(video_reader.total_frames), bar_format="{l_bar}{bar}{r_barL}", file=sys.stdout):
         try:
-            final_frame = mfm.calc_full_frame()
+            final_frame = mfm.get_next_frame()
             # This means it could not read the frame (should never happen)
             if final_frame is None:
                 print("\nCould not read the frame, video is likely over.")
@@ -128,7 +127,7 @@ def run(
         while np.sum(final_video_frame, axis=None) != 0:  # While the last frame isn't completely black
             try:
                 print("Fade frame {}".format(fade_frames + 1))
-                final_video_frame = mfm.fade_img(final_video_frame, make_new_fade=True)  # Fade the image
+                final_video_frame = mfm._fade_img(final_video_frame, make_new_fade=True)  # Fade the image
                 new_video.write(final_video_frame)  # Write the image
                 fade_frames += 1
             except KeyboardInterrupt:
