@@ -8,9 +8,13 @@ logging.basicConfig(level=logging.INFO)
 class VideoReader:
     def __init__(
             self,
-            filename: str
+            filename: str,
+            scale: float = 1,
+            scale_method=cv2.INTER_NEAREST
     ):
         self.filename = os.path.realpath(filename)
+        self.scale = scale
+        self.scale_method = scale_method
 
         # Get file type and base name
         self.name, self.ext = os.path.splitext(os.path.basename(self.filename))
@@ -20,8 +24,8 @@ class VideoReader:
         self.open()
 
         # Get properties from video
-        self.width = int(self.video.get(cv2.CAP_PROP_FRAME_WIDTH))
-        self.height = int(self.video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.width = round(self.video.get(cv2.CAP_PROP_FRAME_WIDTH) * self.scale)
+        self.height = round(self.video.get(cv2.CAP_PROP_FRAME_HEIGHT) * self.scale)
         self.total_frames = int(self.video.get(cv2.CAP_PROP_FRAME_COUNT))
         self.fps = self.video.get(cv2.CAP_PROP_FPS)
         self.fourcc = int(self.video.get(cv2.CAP_PROP_FOURCC))
@@ -65,6 +69,9 @@ class VideoReader:
     def read_frame(self) -> None:
         ret, frame = self.video.read()
         if ret:
+            if self.scale != 1:
+                frame = cv2.resize(frame, self.size, interpolation=self.scale_method)
+
             self.frame_num += 1
             self.frame = frame
         else:  # Cant read frame, video is probably over
