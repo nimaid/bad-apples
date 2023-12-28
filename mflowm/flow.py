@@ -33,7 +33,7 @@ class MotionFlowMulti:
             poly_n: int = 7,
             poly_sigma: int = 1.5,
             blur_amount: int = 1.5,  # Relative to video scale and flow window
-            fade_speed: float = 2  # Relative to FPS
+            fade_speed: float | None = 2  # Relative to FPS
     ):
         self.video_file = video_file
         self.mode = mode
@@ -54,7 +54,10 @@ class MotionFlowMulti:
         self.window_sizes = [int(round(x)) for x in np.linspace(windows_min, windows_max, self.num_windows)]
 
         # Make image to fade with
-        self.fade_amt = round(self.fade_speed / self.video_file.fps_scale)
+        if self.fade_speed is None:
+            self.fade_amt = 0
+        else:
+            self.fade_amt = max(round(self.fade_speed / self.video_file.fps_scale), 1)
 
         # Make HSV array
         self.hsv = np.zeros(self.video_file.shape).astype(np.uint8)
