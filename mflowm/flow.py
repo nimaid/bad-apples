@@ -20,7 +20,7 @@ class MotionFlowMulti:
             self,
             video_file: VideoReader,  # Existing VideoFile object
             mode: CompositeMode = CompositeMode.NONE,  # How to combine the motion with the source
-            trails: bool = True,
+            trails: bool = False,
             num_windows: int = 7,  # Number of flow calculations to do at different sizes
             windows_min: int = 7,  # Relative to video scale, higher gets bigger motions but is blurrier
             windows_max: int = 35,  # Relative to video scale, higher gets bigger motions but is blurrier
@@ -45,7 +45,7 @@ class MotionFlowMulti:
         self.fade_speed = fade_speed
 
         if self.mode in [CompositeMode.BROKEN_A, CompositeMode.BROKEN_A] and not self.trails:
-            logging.warning("Overriding trails setting to enable broken composite mode")
+            logging.warning("Overriding trails setting to enable broken composite mode.")
             self.trails = True
 
         self.window_sizes = [int(round(x)) for x in np.linspace(windows_min, windows_max, self.num_windows)]

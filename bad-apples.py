@@ -11,8 +11,8 @@ from mflowm import BadApple, MotionFlowMulti, CompositeMode
 
 def run(
         mode: CompositeMode,
-        trails: bool = False,
         quality=BadApple.Quality.SD,
+        trails=None,
         upscale_factor=6,
         downscale_factor=1,
         upscale_method=cv2.INTER_NEAREST,
@@ -23,13 +23,21 @@ def run(
     video_reader = BadApple(quality)
 
     # Create the MotionFlowMulti object
-    mfm = MotionFlowMulti(
-        video_reader,
-        mode=mode,
-        trails=trails,
-        windows_balance=False,
-        fade_speed=fade_speed
-    )
+    if trails is not None:
+        mfm = MotionFlowMulti(
+            video_reader,
+            mode=mode,
+            windows_balance=False,
+            trails=trails,
+            fade_speed=fade_speed
+        )
+    else:
+        mfm = MotionFlowMulti(
+            video_reader,
+            mode=mode,
+            windows_balance=False,
+            fade_speed=fade_speed
+        )
 
     # Make output filenames
     temp_filename = video_reader.name + "_temp" + video_reader.ext
