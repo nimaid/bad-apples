@@ -164,6 +164,11 @@ class MotionFlowMulti:
             # Layer over previous motion flow frames
             motion_frame = layer_images(motion_flow_frame, motion_frame, LayerMode.LIGHTEN)
 
+        if self.motion_frame is not None:
+            self.prev_motion_frame = self.motion_frame
+        else:
+            self.prev_motion_frame = None
+
         if old_frame is None:
             old_frame = self.prev_motion_frame
 
@@ -179,10 +184,7 @@ class MotionFlowMulti:
             # Add over last motion frame by blending with lighten
             layered_motion_frame = layer_images(motion_frame, motion_frame_bg, LayerMode.CLIP)
 
-        if self.motion_frame is not None:
-            self.prev_motion_frame = self.motion_frame
-        else:
-            self.prev_motion_frame = None
+
 
         self.motion_frame = layered_motion_frame
         return self.motion_frame
@@ -200,7 +202,7 @@ class MotionFlowMulti:
                     bad_fade=True
                 )
             case _:
-                motion_frame = self._calc_motion_frame(do_fade=False)
+                motion_frame = self._calc_motion_frame()
 
         if motion_frame is None:
             self.frame = None
