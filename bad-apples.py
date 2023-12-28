@@ -8,10 +8,10 @@ def run_bad_apple(
         mode: CompositeMode,
         quality: Quality = Quality.SD,
         trails: bool = False,
-        fade_speed: float = 2,
+        fade_speed: float | None = 2,
         windows_balance: bool = False,
-        output_scale=6,
-        display_scale=1,
+        output_scale: float = 6,
+        display_scale: float = 1,
         scale_method=cv2.INTER_NEAREST
 ):
     # Create the BadApple object
