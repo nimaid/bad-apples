@@ -5,12 +5,12 @@ import numpy as np
 import ffmpeg
 from etatime import EtaBar
 
-from mflowm import BadApple, MotionFlowMulti, CompositeMode
+from mflowm import BadApple, Quality, MotionFlowMulti, CompositeMode
 
 
 def run(
         mode: CompositeMode,
-        quality=BadApple.Quality.SD,
+        quality=Quality.SD,
         trails=None,
         upscale_factor=6,
         downscale_factor=1,
@@ -127,7 +127,7 @@ def run(
         while np.sum(final_video_frame, axis=None) != 0:  # While the last frame isn't completely black
             try:
                 print("Fade frame {}".format(fade_frames + 1))
-                final_video_frame = mfm._fade_img(final_video_frame, make_new_fade=True)  # Fade the image
+                final_video_frame = mfm._fade_img(final_video_frame)  # Fade the image
                 new_video.write(final_video_frame)  # Write the image
                 fade_frames += 1
             except KeyboardInterrupt:
