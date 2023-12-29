@@ -50,18 +50,6 @@ def main():
         scale_method=cv2.INTER_NEAREST
     )
     '''
-    '''
-    mflowm.convert_video(
-        filename="VID_20231227_053334025.mp4",
-        mode=CompositeMode.SIMPLE,
-        pre_scale=0.25,
-        fade_speed=0.1,
-        display_scale=0.5,
-        windows_balance=False,
-        trails=True,
-        scale_method=cv2.INTER_NEAREST
-    )
-    '''
 
 
 if __name__ == "__main__":
