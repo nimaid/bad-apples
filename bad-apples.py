@@ -40,7 +40,7 @@ def main():
     #run_bad_apple(CompositeMode.SIMPLE)
     #run_bad_apple(CompositeMode.GLITCH)
     #run_bad_apple(CompositeMode.BROKEN_A)
-    run_bad_apple(CompositeMode.BROKEN_B)
+    #run_bad_apple(CompositeMode.BROKEN_B)
     '''
     run_bad_apple(
         mode=CompositeMode.GLITCH,
@@ -50,18 +50,18 @@ def main():
         scale_method=cv2.INTER_NEAREST
     )
     '''
-    '''
+    #'''
     mflowm.run(
-        filename="VID_20231228_140141022.mp4",
+        filename="VID_20231227_053334025.mp4",
         mode=CompositeMode.SIMPLE,
-        pre_scale=1,
-        fade_speed=None,
+        pre_scale=0.25,
+        fade_speed=0.1,
         display_scale=0.5,
         windows_balance=False,
         trails=True,
         scale_method=cv2.INTER_NEAREST
     )
-    '''
+    #'''
 
 
 if __name__ == "__main__":
