@@ -1,8 +1,8 @@
 import cv2
 
-import mflowm.run
-from mflowm import MotionFlowMulti, CompositeMode, VideoReader
+from mflowm import MotionFlowMulti, CompositeMode
 from bad_apple import BadApple, Quality
+
 
 def run_bad_apple(
         mode: CompositeMode,
@@ -40,7 +40,7 @@ def main():
     #run_bad_apple(CompositeMode.SIMPLE)
     #run_bad_apple(CompositeMode.GLITCH)
     #run_bad_apple(CompositeMode.BROKEN_A)
-    #run_bad_apple(CompositeMode.BROKEN_B)
+    run_bad_apple(CompositeMode.BROKEN_B)
     '''
     run_bad_apple(
         mode=CompositeMode.GLITCH,
@@ -50,8 +50,8 @@ def main():
         scale_method=cv2.INTER_NEAREST
     )
     '''
-    #'''
-    mflowm.run(
+    '''
+    mflowm.convert_video(
         filename="VID_20231227_053334025.mp4",
         mode=CompositeMode.SIMPLE,
         pre_scale=0.25,
@@ -61,7 +61,7 @@ def main():
         trails=True,
         scale_method=cv2.INTER_NEAREST
     )
-    #'''
+    '''
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ from enum import Enum
 import logging
 import hashlib
 
-from mflowm.files import VideoReader
+from mflowm import VideoReader
 
 
 def validate(filename, sha1):

@@ -6,8 +6,4 @@ dependencies:
   - pip
   - ffmpeg
   - pip:
-    - numpy
-    - opencv-python
-    - blend_modes
-    - ffmpeg-python
-    - etatime>=3.0.0
+    - mflowm>=0.1.2
