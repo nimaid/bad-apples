@@ -42,13 +42,22 @@ def main():
     #run_bad_apple(CompositeMode.BROKEN_A)
     run_bad_apple(CompositeMode.BROKEN_B)
     '''
-    mflowm.run(
-        filename="VID_20231228_140428063.mp4",
+    run_bad_apple(
         mode=CompositeMode.GLITCH,
-        pre_scale=0.25,
+        fade_speed=None,
+        windows_balance=True,
+        trails=True,
+        scale_method=cv2.INTER_NEAREST
+    )
+    '''
+    '''
+    mflowm.run(
+        filename="VID_20231228_140141022.mp4",
+        mode=CompositeMode.SIMPLE,
+        pre_scale=1,
         fade_speed=None,
         display_scale=0.5,
-        windows_balance=True,
+        windows_balance=False,
         trails=True,
         scale_method=cv2.INTER_NEAREST
     )

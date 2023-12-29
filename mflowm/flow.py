@@ -90,13 +90,16 @@ class MotionFlowMulti:
         return True
 
     # Function to darken an image based on the fade amount
-    def _fade_img(self, img, bad_fade=False):
+    def _fade_img(self, img, bad_fade=False, fade_amt=None):
+        if fade_amt is None:
+            fade_amt = self.fade_amt
+
         if bad_fade:
             fade_amt = 0.2
             img_black = np.zeros_like(img)
             return cv2.addWeighted(img, 1 - fade_amt, img_black, fade_amt, 0.0)
 
-        img_sub = np.ones_like(img) * self.fade_amt
+        img_sub = np.ones_like(img) * fade_amt
         return np.subtract(img, img_sub.astype(np.int16)).clip(0, 255).astype(np.uint8)
 
     def _get_flow(
@@ -321,7 +324,10 @@ class MotionFlowMulti:
                 while np.sum(final_video_frame, axis=None) != 0:  # While the last frame isn't completely black
                     try:
                         logging.info(f"Fade frame {fade_frames + 1}")
-                        final_video_frame = self._fade_img(final_video_frame)  # Fade the image
+                        if self.fade_amt < 1:
+                            final_video_frame = self._fade_img(final_video_frame, fade_amt=1)  # Fade the image
+                        else:
+                            final_video_frame = self._fade_img(final_video_frame)  # Fade the image
                         new_video.write(final_video_frame)  # Write the image
                         fade_frames += 1
                     except KeyboardInterrupt:
